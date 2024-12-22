@@ -1,7 +1,7 @@
 const vscode = require('vscode');
-const { initCommand } = require('../crelation/src/command');
-const { initSetting } = require('../crelation/src/setting');
-const { initStatusbar } = require('../crelation/src/statusBar');
+const { initCommand } = require('./src/frame/command');
+const { initSetting } = require('./src/frame/setting');
+const { initStatusbar } = require('./src/frame/statusbar');
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed

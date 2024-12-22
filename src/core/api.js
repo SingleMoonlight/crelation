@@ -1,7 +1,7 @@
 const project = require('./project');
 const parse = require('./parse');
-const statusbar = require('./statusBar');
-const { showInfoMessage } = require('./message')
+const statusbar = require('../frame/statusbar');
+const { showInfoMessage } = require('../frame/message')
 
 /**
  * 初始化项目数据库

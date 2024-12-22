@@ -3,7 +3,7 @@ const path = require('path');
 const Parser = require('tree-sitter');
 const CParser = require('tree-sitter-c');
 const { getProjectDatabasePath } = require('./project');
-const { print } = require('./log');
+const { print } = require('../util/log');
 
 // 初始化 Tree-Sitter 解析器
 const parser = new Parser();

@@ -1,8 +1,8 @@
 const vscode = require('vscode');
 const path = require('path');
 const fs = require('fs').promises;
-const { getDataSavePath } = require('./setting');
-const { print } = require('./log');
+const { getDataSavePath } = require('../frame/setting');
+const { print } = require('../util/log');
 
 const projectDataFile = path.join(getDataSavePath(), 'project.json');
 

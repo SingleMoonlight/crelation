@@ -1,5 +1,5 @@
 const vscode = require('vscode');
-const api = require('./api');
+const api = require('../core/api');
 
 /**
  * 注册命令
