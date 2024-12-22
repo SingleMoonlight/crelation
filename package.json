@@ -12,10 +12,20 @@
   "activationEvents": [],
   "main": "./extension.js",
   "contributes": {
-    "commands": [{
-      "command": "c-relation.helloWorld",
-      "title": "Hello World"
-    }]
+    "commands": [
+      {
+        "command": "c-relation.init",
+        "title": "CRelation: Init database"
+      },
+      {
+        "command": "c-relation.update",
+        "title": "CRelation: Update database"
+      },
+      {
+        "command": "c-relation.forceUpdate",
+        "title": "CRelation: Force update database"
+      }
+    ]
   },
   "scripts": {
     "lint": "eslint .",
