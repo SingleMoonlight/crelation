@@ -1,5 +1,6 @@
 const vscode = require('vscode');
 const { initCommand } = require('../crelation/src/command');
+const { initSetting } = require('../crelation/src/setting');
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -8,6 +9,7 @@ const { initCommand } = require('../crelation/src/command');
  * @param {vscode.ExtensionContext} context
  */
 function activate(context) {
+	initSetting();
 	initCommand(context);
 }
 

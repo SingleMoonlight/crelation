@@ -16,9 +16,9 @@ function registerCommand(context, commandName, callback) {
  */
 function initCommand(context)
 {
-	registerCommand(context, 'c-relation.init', api.initDatabase);
-	registerCommand(context, 'c-relation.update', api.updateDatabase);
-	registerCommand(context, 'c-relation.forceUpdate', api.forceUpdateDatabase);
+	registerCommand(context, 'crelation.init', api.initDatabase);
+	registerCommand(context, 'crelation.update', api.updateDatabase);
+	registerCommand(context, 'crelation.forceUpdate', api.forceUpdateDatabase);
 }
 
 module.exports = {

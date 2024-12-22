@@ -1,5 +1,5 @@
 {
-  "name": "c-relation",
+  "name": "crelation",
   "displayName": "CRelation",
   "description": "A plugin that visualizes the relationship between C function calls",
   "version": "0.0.1",
@@ -9,23 +9,32 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": ["*"],
   "main": "./extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "c-relation.init",
+        "command": "crelation.init",
         "title": "CRelation: Init database"
       },
       {
-        "command": "c-relation.update",
+        "command": "crelation.update",
         "title": "CRelation: Update database"
       },
       {
-        "command": "c-relation.forceUpdate",
+        "command": "crelation.forceUpdate",
         "title": "CRelation: Force update database"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "插件数据保存路径",
+      "properties": {
+        "crelation.dataSavePath": {
+          "type": "string",
+          "description": "扫描项目生成的数据将会保存在该路径下。"
+        }
+      }
+    }
   },
   "scripts": {
     "lint": "eslint .",
