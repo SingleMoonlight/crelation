@@ -1,7 +1,12 @@
 const vscode = require('vscode');
+const project = require('./project');
+const parse = require('./parse');
 
 function initDatabase()
 {
+    const projectPath = project.getProjectPath();
+    project.addProject();
+    parse.traverseDirectory(projectPath, true);
     vscode.window.showInformationMessage('Init database');
 }
 

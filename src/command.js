@@ -2,6 +2,7 @@ const vscode = require('vscode');
 const api = require('./api');
 
 /**
+ * 注册命令
  * @param {vscode.ExtensionContext} context
  * @param {string} commandName
  * @param {any} callback
@@ -12,6 +13,7 @@ function registerCommand(context, commandName, callback) {
 }
 
 /**
+ * 初始化命令
  * @param {vscode.ExtensionContext} context
  */
 function initCommand(context)
