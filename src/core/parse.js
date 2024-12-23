@@ -2,7 +2,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const Parser = require('tree-sitter');
 const CParser = require('tree-sitter-c');
-const { getProjectDatabasePath } = require('./project');
+const { getProjectPath, getProjectDatabasePath } = require('./project');
 const { print } = require('../util/log');
 
 // 初始化 Tree-Sitter 解析器
@@ -119,6 +119,8 @@ async function parseFile(filePath) {
  * @param {string} filePath 文件路径
  */
 function extractFunctionDefinitions(node, filePath) {
+    const projectPath = getProjectPath();
+
     node.children.forEach(child => {
         if (child.type === 'function_definition') {
             const declarator = child.childForFieldName('declarator');
@@ -134,7 +136,7 @@ function extractFunctionDefinitions(node, filePath) {
                     functionDefinitions[functionName] = [];
                 }
                 functionDefinitions[functionName].push({
-                    filePath: filePath,
+                    filePath: path.relative(projectPath, filePath),
                     lineNumber: child.startPosition.row + 1
                 });
                 print('info', `Found function definition: ${functionName} at ${filePath}:${child.startPosition.row + 1}`);
@@ -167,6 +169,8 @@ function extractFunctionDefinitions(node, filePath) {
  * @param {string} callerFunctionName 调用函数的名称
  */
 function extractFunctionCalls(node, filePath, callerFunctionName = '') {
+    const projectPath = getProjectPath();
+
     node.children.forEach(child => {
         if (child.type === 'function_definition') {
             const declarator = child.childForFieldName('declarator');
@@ -190,7 +194,7 @@ function extractFunctionCalls(node, filePath, callerFunctionName = '') {
                 }
                 const callInfo = {
                     caller: callerFunctionName,
-                    filePath: filePath,
+                    filePath: path.relative(projectPath, filePath),
                     lineNumber: child.startPosition.row + 1
                 };
                 functionCalls[functionName].calledBy.push(callInfo);
