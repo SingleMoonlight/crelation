@@ -26,8 +26,20 @@
       {
         "command": "crelation.forceUpdate",
         "title": "CRelation: Force update database"
+      },
+      {
+        "command": "crelation.showRelations",
+        "title": "Show Relations"
       }
     ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "crelation.showRelations",
+          "when": "editorTextFocus"
+        }
+      ]
+    },
     "configuration": {
       "title": "插件数据保存路径",
       "properties": {

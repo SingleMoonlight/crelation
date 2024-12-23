@@ -21,6 +21,7 @@ function initCommand(context)
 	registerCommand(context, 'crelation.init', api.initDatabase);
 	registerCommand(context, 'crelation.update', api.updateDatabase);
 	registerCommand(context, 'crelation.forceUpdate', api.forceUpdateDatabase);
+	registerCommand(context, 'crelation.showRelations', api.showRelations);
 }
 
 module.exports = {

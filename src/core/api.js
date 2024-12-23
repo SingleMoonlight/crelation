@@ -1,7 +1,8 @@
+const vscode = require('vscode');
 const project = require('./project');
 const parse = require('./parse');
 const statusbar = require('../frame/statusbar');
-const { showInfoMessage } = require('../frame/message')
+const { showInfoMessage } = require('../frame/message');
 
 /**
  * 初始化项目数据库
@@ -106,8 +107,25 @@ function forceUpdateDatabase() {
     });
 }
 
+/**
+ * 显示函数关系图
+ */
 function showRelations() {
-    showInfoMessage('Show relations');
+    // 获取当前选中的文本
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+        return;
+    }
+
+    const selection = editor.selection;
+    const text = editor.document.getText(selection);
+
+    // 查找调用链
+    parse.getFunctionCalls(text).then(result => {
+        showInfoMessage('Query relations result: ' + JSON.stringify(result));
+    }).catch(() => {
+        showInfoMessage('Query relations failed');
+    });
 }
 
 module.exports = {
