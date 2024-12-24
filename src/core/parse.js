@@ -125,6 +125,19 @@ async function traverseDirectory(dir, forceRescan = false) {
  */
 async function parseFile(filePath) {
     try {
+        // 清空该文件相关的函数定义和调用信息
+        const relativeFilePath = path.relative(getProjectPath(), filePath);
+        functionDefinitions = Object.fromEntries(
+            Object.entries(functionDefinitions).filter(([_, definitions]) =>
+                !definitions.some(def => def.filePath === relativeFilePath)
+            )
+        );
+        functionCalls = Object.fromEntries(
+            Object.entries(functionCalls).filter(([_, calls]) =>
+                !calls.calledBy.some(call => call.filePath === relativeFilePath)
+            )
+        );
+
         const code = await fs.readFile(filePath, 'utf8');
         const tree = parser.parse(code);
         const root = tree.rootNode;
