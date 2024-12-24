@@ -9,14 +9,14 @@ const { print } = require('../util/log');
 const parser = new Parser();
 parser.setLanguage(CParser);
 
-// 存储函数定义和调用关系的数据结构
-const functionDefinitions = {};
-const functionCalls = {};
-
 // 存储文件路径和文件名
 const lastScanTimestampFile = 'last_scan_timestamp.json';
 const functionDefinitionsFile = 'function_definitions.json';
 const functionCallsFile = 'function_calls.json';
+
+// 存储函数定义和调用关系的数据结构
+let functionDefinitions = {};
+let functionCalls = {};
 
 /**
  * 读取上次扫描时间戳
@@ -48,6 +48,22 @@ async function writeLastScanTimestamp(timestamp) {
 }
 
 /**
+ * 加载现有的函数定义和调用关系
+ */
+async function loadExistingData() {
+    try {
+        const projectDatabasePath = await getProjectDatabasePath();
+        const definitionsData = await fs.readFile(path.join(projectDatabasePath, functionDefinitionsFile), 'utf8');
+        const callsData = await fs.readFile(path.join(projectDatabasePath, functionCallsFile), 'utf8');
+        Object.assign(functionDefinitions, JSON.parse(definitionsData));
+        Object.assign(functionCalls, JSON.parse(callsData));
+    } catch (err) {
+        print('error', 'Error reading existing data');
+        print('error', err);
+    }
+}
+
+/**
  * 遍历目录，解析文件，并输出函数定义和调用关系到文件
  * @param {string} dir 目录路径
  * @param {boolean} forceRescan 是否强制重新扫描
@@ -57,6 +73,15 @@ async function traverseDirectory(dir, forceRescan = false) {
         const lastScanTimestamp = await readLastScanTimestamp();
         const files = await fs.readdir(dir);
         let hasUpdatedFiles = false;
+
+        if (forceRescan) {
+            // 清空现有数据
+            functionDefinitions = {};
+            functionCalls = {};
+        } else {
+            // 加载现有的函数定义和调用关系
+            await loadExistingData();
+        }
 
         for (const file of files) {
             const filePath = path.join(dir, file);
@@ -135,11 +160,22 @@ function extractFunctionDefinitions(node, filePath) {
                 if (!functionDefinitions[functionName]) {
                     functionDefinitions[functionName] = [];
                 }
-                functionDefinitions[functionName].push({
+
+                const definitionInfo = {
                     filePath: path.relative(projectPath, filePath),
                     lineNumber: child.startPosition.row + 1
-                });
-                print('info', `Found function definition: ${functionName} at ${filePath}:${child.startPosition.row + 1}`);
+                };
+
+                // 检查是否已经存在相同的定义
+                const existingDefinition = functionDefinitions[functionName].find(
+                    d => d.filePath === definitionInfo.filePath &&
+                        d.lineNumber === definitionInfo.lineNumber
+                );
+
+                if (!existingDefinition) {
+                    functionDefinitions[functionName].push(definitionInfo);
+                    print('info', `Found function definition: ${functionName} at ${filePath}:${child.startPosition.row + 1}`);
+                }
             }
         } else if (child.type === 'declaration') {
             // 处理函数声明
@@ -197,8 +233,18 @@ function extractFunctionCalls(node, filePath, callerFunctionName = '') {
                     filePath: path.relative(projectPath, filePath),
                     lineNumber: child.startPosition.row + 1
                 };
-                functionCalls[functionName].calledBy.push(callInfo);
-                print('info', `Function call found: ${functionName} in ${callerFunctionName} at ${filePath}:${child.startPosition.row + 1}`);
+
+                // 检查是否已经存在相同的调用
+                const existingCall = functionCalls[functionName].calledBy.find(
+                    c => c.caller === callInfo.caller &&
+                        c.filePath === callInfo.filePath &&
+                        c.lineNumber === callInfo.lineNumber
+                );
+
+                if (!existingCall) {
+                    functionCalls[functionName].calledBy.push(callInfo);
+                    print('info', `Function call found: ${functionName} in ${callerFunctionName} at ${filePath}:${child.startPosition.row + 1}`);
+                }
             } else {
                 print('info', `Unexpected call expression structure: ${child.toString()}`); // 打印未识别的 call_expression 结构
             }
