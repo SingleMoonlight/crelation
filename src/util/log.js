@@ -1,16 +1,19 @@
+const { getLogLevel } = require('../frame/setting');
+
 const COLORS = {
     RESET: '\x1b[0m',
     RED: '\x1b[31m',
     YELLOW: '\x1b[33m',
     BLUE: '\x1b[34m',
-    GREEN: '\x1b[32m'
+    WHITE: '\x1b[37m'
 };
 
 const LOG_LEVELS = {
-    INFO: { color: COLORS.BLUE, label: 'INFO' },
-    WARN: { color: COLORS.YELLOW, label: 'WARN' },
-    ERROR: { color: COLORS.RED, label: 'ERROR' },
-    SUCCESS: { color: COLORS.GREEN, label: 'SUCCESS' }
+    DEBUG: { level:4, color: COLORS.WHITE, label: 'DEBUG' },
+    INFO: { level:3, color: COLORS.BLUE, label: 'INFO' },
+    WARN: { level:2, color: COLORS.YELLOW, label: 'WARN' },
+    ERROR: { level:1, color: COLORS.RED, label: 'ERROR' },
+    OFF: { level:0, color: COLORS.RESET, label: 'OFF' },
 };
 
 /**
@@ -20,6 +23,12 @@ const LOG_LEVELS = {
  */
 function print(type, message) {
     const logLevel = LOG_LEVELS[type.toUpperCase()];
+    const settingLogLevel = getLogLevel().toUpperCase();
+
+    if (LOG_LEVELS[settingLogLevel] && LOG_LEVELS[settingLogLevel].level < logLevel.level) {
+        return;
+    }
+
     let errorMessage = message;
 
     if (message instanceof Error) {

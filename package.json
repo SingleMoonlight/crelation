@@ -40,15 +40,34 @@
         }
       ]
     },
-    "configuration": {
-      "title": "插件数据保存路径",
-      "properties": {
-        "crelation.dataSavePath": {
-          "type": "string",
-          "description": "扫描项目生成的数据将会保存在该路径下。"
+    "configuration": [
+      {
+        "title": "插件数据保存路径",
+        "properties": {
+          "crelation.dataSavePath": {
+            "type": "string",
+            "description": "扫描项目生成的数据将会保存在该路径下。"
+          }
+        }
+      },
+      {
+        "title": "插件日志等级",
+        "properties": {
+          "crelation.logLevel": {
+            "type": "string",
+            "default": "off",
+            "description": "插件日志等级，等级越高，日志越详细，默认关闭。",
+            "enum": [
+              "debug",
+              "info",
+              "warn",
+              "error",
+              "off"
+            ]
+          }
         }
       }
-    }
+    ]
   },
   "scripts": {
     "lint": "eslint .",

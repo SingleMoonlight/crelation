@@ -92,9 +92,9 @@ async function traverseDirectory(dir, forceRescan = false) {
                     hasUpdatedFiles = true;
                 }
             } else if (filePath.endsWith('.c') || filePath.endsWith('.h')) {
-                print('info', `Checking file: ${filePath}`);
+                print('debug', `Checking file: ${filePath}`);
                 if (forceRescan || stats.mtimeMs > lastScanTimestamp) {
-                    print('info', `Parsing file: ${filePath}`);
+                    print('debug', `Parsing file: ${filePath}`);
                     await parseFile(filePath);
                     hasUpdatedFiles = true;
                 }
@@ -174,7 +174,7 @@ function extractFunctionDefinitions(node, filePath) {
 
                 if (!existingDefinition) {
                     functionDefinitions[functionName].push(definitionInfo);
-                    print('info', `Found function definition: ${functionName} at ${filePath}:${child.startPosition.row + 1}`);
+                    print('debug', `Found function definition: ${functionName} at ${filePath}:${child.startPosition.row + 1}`);
                 }
             }
         } else if (child.type === 'declaration') {
@@ -191,7 +191,7 @@ function extractFunctionDefinitions(node, filePath) {
                 if (!functionDefinitions[functionName]) {
                     functionDefinitions[functionName] = [];
                 }
-                print('info', `Found function declaration: ${functionName} at ${filePath}`);
+                print('debug', `Found function declaration: ${functionName} at ${filePath}`);
             }
         }
         extractFunctionDefinitions(child, filePath);
@@ -218,7 +218,7 @@ function extractFunctionCalls(node, filePath, callerFunctionName = '') {
                 }
             }
             if (functionName) {
-                print('info', `Entering function: ${functionName} at ${filePath}:${child.startPosition.row + 1}`);
+                print('debug', `Entering function: ${functionName} at ${filePath}:${child.startPosition.row + 1}`);
                 extractFunctionCalls(child, filePath, functionName);
             }
         } else if (child.type === 'call_expression') {
@@ -243,10 +243,10 @@ function extractFunctionCalls(node, filePath, callerFunctionName = '') {
 
                 if (!existingCall) {
                     functionCalls[functionName].calledBy.push(callInfo);
-                    print('info', `Function call found: ${functionName} in ${callerFunctionName} at ${filePath}:${child.startPosition.row + 1}`);
+                    print('debug', `Function call found: ${functionName} in ${callerFunctionName} at ${filePath}:${child.startPosition.row + 1}`);
                 }
             } else {
-                print('info', `Unexpected call expression structure: ${child.toString()}`); // 打印未识别的 call_expression 结构
+                print('debug', `Unexpected call expression structure: ${child.toString()}`); // 打印未识别的 call_expression 结构
             }
         } else {
             extractFunctionCalls(child, filePath, callerFunctionName);

@@ -36,7 +36,18 @@ function getDataSavePath()
     return config.get('dataSavePath');
 }
 
+/**
+ * 获取日志级别
+ * @returns {string} 日志级别
+ */
+function getLogLevel()
+{
+    const config = vscode.workspace.getConfiguration('crelation');
+    return config.get('logLevel');
+}
+
 module.exports = {
 	initSetting,
-    getDataSavePath
+    getDataSavePath,
+    getLogLevel
 };
