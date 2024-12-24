@@ -190,22 +190,6 @@ function extractFunctionDefinitions(node, filePath) {
                     print('debug', `Found function definition: ${functionName} at ${filePath}:${child.startPosition.row + 1}`);
                 }
             }
-        } else if (child.type === 'declaration') {
-            // 处理函数声明
-            const declarator = child.childForFieldName('declarator');
-            let functionName = '';
-            if (declarator && declarator.type === 'function_declarator') {
-                const identifier = declarator.childForFieldName('declarator');
-                if (identifier.type === 'identifier') {
-                    functionName = identifier.text;
-                }
-            }
-            if (functionName) {
-                if (!functionDefinitions[functionName]) {
-                    functionDefinitions[functionName] = [];
-                }
-                print('debug', `Found function declaration: ${functionName} at ${filePath}`);
-            }
         }
         extractFunctionDefinitions(child, filePath);
     });
