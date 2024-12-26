@@ -2,12 +2,15 @@ const vscode = require('vscode');
 const project = require('./project');
 const parse = require('./parse');
 const statusbar = require('../frame/statusbar');
+const { createWebview } = require('../frame/webview');
 const { showInfoMessage } = require('../frame/message');
+const { print } = require('../util/log');
 
 /**
  * 初始化项目数据库
+ * @param {vscode.ExtensionContext} context
  */
-function initDatabase() {
+function initDatabase(context) {
     const projectPath = project.getProjectPath();
     project.addProject();
 
@@ -33,7 +36,8 @@ function initDatabase() {
 
         showInfoMessage(`Init database complete in ${formattedDuration}`);
         statusbar.hideStatusbarItem();
-    }).catch(() => {
+    }).catch((err) => {
+        print('error', err);
         showInfoMessage('Init database failed');
         statusbar.hideStatusbarItem();
     });
@@ -41,8 +45,9 @@ function initDatabase() {
 
 /**
  * 更新项目数据库
+ * @param {vscode.ExtensionContext} context
  */
-function updateDatabase() {
+function updateDatabase(context) {
     const projectPath = project.getProjectPath();
 
     statusbar.showStatusbarItem();
@@ -67,7 +72,8 @@ function updateDatabase() {
 
         showInfoMessage(`Update database complete in ${formattedDuration}`);
         statusbar.hideStatusbarItem();
-    }).catch(() => {
+    }).catch((err) => {
+        print('error', err);
         showInfoMessage('Update database failed');
         statusbar.hideStatusbarItem();
     });
@@ -75,8 +81,9 @@ function updateDatabase() {
 
 /**
  * 强制更新项目数据库
+ * @param {vscode.ExtensionContext} context
  */
-function forceUpdateDatabase() {
+function forceUpdateDatabase(context) {
     const projectPath = project.getProjectPath();
 
     statusbar.showStatusbarItem();
@@ -101,7 +108,8 @@ function forceUpdateDatabase() {
 
         showInfoMessage(`Force update database complete in ${formattedDuration}`);
         statusbar.hideStatusbarItem();
-    }).catch(() => {
+    }).catch((err) => {
+        print('error', err);
         showInfoMessage('Force update database failed');
         statusbar.hideStatusbarItem();
     });
@@ -109,8 +117,9 @@ function forceUpdateDatabase() {
 
 /**
  * 显示函数关系图
+ * @param {vscode.ExtensionContext} context
  */
-function showRelations() {
+function showRelations(context) {
     // 获取当前选中的文本
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
@@ -122,8 +131,9 @@ function showRelations() {
 
     // 查找调用链
     parse.getFunctionCalls(text).then(result => {
-        showInfoMessage('Query relations result: ' + JSON.stringify(result));
-    }).catch(() => {
+        createWebview(context, result);
+    }).catch((err) => {     
+        print('error', err); 
         showInfoMessage('Query relations failed');
     });
 }

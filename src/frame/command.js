@@ -8,7 +8,7 @@ const api = require('../core/api');
  * @param {any} callback
  */
 function registerCommand(context, commandName, callback) {
-	let disposable = vscode.commands.registerCommand(commandName, callback);
+	let disposable = vscode.commands.registerCommand(commandName, () => callback(context));
 	context.subscriptions.push(disposable);
 }
 

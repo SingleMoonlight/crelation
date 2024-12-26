@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Tree Diagram</title>
+    <!-- 该路径必须是相对于插件根目录的路径 -->
+    <script src="src/view/lib/d3.min.js"></script>
+
+    <style>
+        .link {
+            fill: none;
+            stroke: #666;
+            stroke-width: 1.5px;
+        }
+
+        .node circle {
+            fill: #fff;
+            stroke: steelblue;
+            stroke-width: 1.5px;
+        }
+
+        .node text {
+            font: 10px sans-serif;
+        }
+    </style>
+</head>
+
+<body>
+    <h3>Tree relation</h3>
+    <svg width="960" height="600"></svg>
+    <script>
+        var treeData = `%%TREE_DATA%%`;
+        treeData = JSON.parse(treeData);
+
+        var svg = d3.select("svg"),
+            i = 0,
+            root = d3.hierarchy(treeData, function (d) { return d.children; }),
+            viewWidth = +svg.attr("width"),
+            viewHeight = +svg.attr("height");
+
+        var treemap = d3.tree()
+            .size([viewHeight, viewWidth - 160]);
+
+        var nodes = treemap(root).descendants(),
+            links = nodes.slice(1);
+
+        var link = svg.selectAll(".link")
+            .data(links)
+            .enter().append("path")
+            .attr("class", "link")
+            .attr("d", function (d) {
+                return "M" + d.y + "," + d.x
+                    + "C" + (d.y + d.parent.y) / 2 + "," + d.x
+                    + " " + (d.y + d.parent.y) / 2 + "," + d.parent.x
+                    + " " + d.parent.y + "," + d.parent.x;
+            });
+
+        var node = svg.selectAll(".node")
+            .data(nodes)
+            .enter().append("g")
+            .attr("class", "node")
+            .attr("transform", function (d) { return "translate(" + d.y + "," + d.x + ")"; });
+
+        node.append("circle")
+            .attr("r", 4.5);
+
+        node.append("text")
+            .attr("dy", 3)
+            .attr("x", function (d) { return d.children ? -13 : 13; })
+            .style("text-anchor", function (d) { return d.children ? "end" : "start"; })
+            .text(function (d) { return d.data.name; });
+    </script>
+</body>
+
+</html>
