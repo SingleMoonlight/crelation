@@ -1,0 +1,369 @@
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>CReation</title>
+    <!-- 该路径必须是相对于插件根目录的路径，而且需要位于第一个属性位置 -->
+    <script src="src/view/lib/d3.min.js"></script>
+    <script type="module">
+        var treeData = `%%TREE_DATA%%`;
+        treeData = JSON.parse(treeData);
+
+        function transformData(data, parent = null) {
+            let rootName = Object.keys(data)[0];
+            let root = { name: rootName, children: [], parent: parent };
+            data[rootName].calledBy.forEach(item => {
+                root.children.push({
+                    name: item.caller,
+                    filePath: item.filePath,
+                    lineNumber: item.lineNumber,
+                    children: [],
+                    parent: root
+                });
+            });
+            return root;
+        }
+
+        let rootData = transformData(treeData);
+
+        let margin = { top: 20, right: 90, bottom: 30, left: 90 },
+            width = document.getElementById('view').clientWidth - margin.left - margin.right,
+            height = document.getElementById('view').clientHeight - margin.top - margin.bottom;
+
+        let svg = d3.select("svg")
+            .attr("width", "100%")
+            .attr("height", "100%")
+            .call(d3.zoom()
+                .filter(function (event) {
+                    // 禁用双击事件的缩放行为
+                    return event.type !== 'dblclick';
+                })
+                .on("zoom", function (event) {
+                    svg.attr("transform", event.transform);
+                }))
+            .append("g")
+            .attr("transform", `translate(${margin.left}, ${height / 2}) scale(1)`); // 设置初始位置
+
+        // 模拟一次缩放和平移操作，将树拖到垂直居中
+        d3.select("svg").call(d3.zoom().transform, d3.zoomIdentity.translate(margin.left, height / 2).scale(1));
+
+        let i = 0,
+            duration = 200, // 动画时间
+            root;
+
+        // 设置节点的宽度和高度间隔
+        let treemap = d3.tree().nodeSize([50, 0]);
+
+        root = d3.hierarchy(rootData, function (d) { return d.children; });
+        root.x0 = height / 2;
+        root.y0 = 0;
+
+        function collapse(d) {
+            if (d.children) {
+                d._children = d.children;
+                d._children.forEach(collapse);
+                d.children = null;
+            }
+        }
+
+        root.children.forEach(collapse);
+        update(root);
+
+        function update(source) {
+            let treeData = treemap(root);
+            let nodes = treeData.descendants(),
+                links = treeData.descendants().slice(1);
+
+            // 创建一个临时的 SVG 组来计算文本宽度
+            let tempGroup = svg.append("g").attr("class", "temp-group");
+
+            // 计算每个节点的宽度
+            nodes.forEach(d => {
+                const text = tempGroup.append("text")
+                    .attr("class", "temp-text")
+                    .attr("font-family", "sans-serif")
+                    .attr("font-size", "12px")
+                    .text(d.data.name)
+                    .node();
+
+                // 设置节点的宽度
+                d.nodeWidth = text.getBoundingClientRect().width + 20;
+                // 移除临时文本
+                d3.select(text).remove();
+            });
+
+            // 移除临时组
+            tempGroup.remove();
+
+            // 计算每一层级中最长宽度的节点
+            let maxNodeWidthPerDepth = {};
+            nodes.forEach(d => {
+                if (!maxNodeWidthPerDepth[d.depth]) {
+                    maxNodeWidthPerDepth[d.depth] = 0;
+                }
+                if (d.nodeWidth > maxNodeWidthPerDepth[d.depth]) {
+                    maxNodeWidthPerDepth[d.depth] = d.nodeWidth;
+                }
+            });
+
+            // 动态调整每个节点的水平位置和垂直位置
+            nodes.forEach(d => {
+                if (d.depth === 0) {
+                    d.y = 0; // 根节点水平位置为0
+                } else {
+                    d.y = d.parent.y + maxNodeWidthPerDepth[d.depth - 1] + 50; // 基于父节点的宽度和一个固定间隔设置水平位置
+                }
+            });
+
+            let node = svg.selectAll('g.node')
+                .data(nodes, d => d.id || (d.id = ++i));
+
+            let nodeEnter = node.enter().append('g')
+                .attr('class', 'node')
+                .attr("transform", d => "translate(" + source.y0 + "," + source.x0 + ")")
+                .on('click', click)
+                .on('contextmenu', contextmenu);
+
+            nodeEnter.append('rect')
+                .attr('class', 'node')
+                .attr('height', 30)
+                .attr('x', 0)
+                .attr('y', -15)
+                .attr('width', d => d.nodeWidth)
+                .style("fill", d => d._children ? "lightsteelblue" : "#fff");
+
+            nodeEnter.append('text')
+                .attr("dy", ".35em")
+                .attr("x", d => (d.nodeWidth) / 2) // 文本居中
+                .attr("text-anchor", "middle")
+                .text(d => d.data.name);
+
+            nodeEnter.filter(d => d.depth !== 0)
+                .on('mouseover', function (event, d) {
+                    d3.select(this).append("text")
+                        .attr("class", "tooltip")
+                        .attr("x", 10) // 信息与节点文本左侧对齐
+                        .attr("y", 30) // 信息在节点下方
+                        .text(`File: ${d.data.filePath}, Line: ${d.data.lineNumber}`);
+                }).on('mouseout', function (event, d) {
+                    d3.select(this).select("text.tooltip").remove();
+                });
+
+            let nodeUpdate = nodeEnter.merge(node);
+
+            nodeUpdate.transition()
+                .duration(duration)
+                .attr("transform", d => "translate(" + d.y + "," + d.x + ")");
+
+            nodeUpdate.select('rect.node')
+                .attr('cursor', 'pointer')
+                .style("fill", d => d._children ? "lightsteelblue" : "#fff");
+
+            let nodeExit = node.exit().transition()
+                .duration(duration)
+                .attr("transform", d => "translate(" + source.y + "," + source.x + ")")
+                .remove();
+
+            nodeExit.select('rect')
+                .attr('width', 1e-6)
+                .attr('height', 1e-6);
+
+            nodeExit.select('text')
+                .style('fill-opacity', 1e-6);
+
+            let link = svg.selectAll('polyline.link')
+                .data(links, d => d.id);
+
+            let linkEnter = link.enter().insert('polyline', "g")
+                .attr("class", "link")
+                .attr('points', d => {
+                    let o = { x: source.x0, y: source.y0 };
+                    return `${o.y},${o.x} ${o.y},${o.x} ${o.y},${o.x}`;
+                })
+
+            let linkUpdate = linkEnter.merge(link);
+
+            linkUpdate.transition()
+                .duration(duration)
+                .attr('points', d => {
+                    const parentWidth = d.parent.nodeWidth;
+                    const childWidth = d.nodeWidth;
+                    const parentY = d.parent.y + parentWidth;
+                    const childY = d.y;
+                    // 弯折点靠近子节点，保持第三段折线长度为20
+                    const bendY = childY - 20;
+                    return `${parentY},${d.parent.x} ${bendY},${d.parent.x} ${bendY},${d.x} ${childY},${d.x}`;
+                });
+
+            let linkExit = link.exit().transition()
+                .duration(duration)
+                .attr('points', d => {
+                    let o = { x: source.x, y: source.y };
+                    return `${o.y},${o.x} ${o.y},${o.x} ${o.y},${o.x}`;
+                })
+                .remove();
+
+            svg.selectAll('polyline.link')
+                .attr("marker-start", "url(#arrow)");
+
+            nodes.forEach(d => {
+                d.x0 = d.x;
+                d.y0 = d.y;
+            });
+        }
+
+        svg.append("defs").append("marker")
+            .attr("id", "arrow")
+            .attr("viewBox", "0 -5 10 10")
+            .attr("refX", 0)
+            .attr("refY", 0)
+            .attr("markerWidth", 4)
+            .attr("markerHeight", 4)
+            .attr("orient", "auto")
+            .append("path")
+            .attr("d", "M10,-5L0,0L10,5")
+            .attr("fill", "#ccc");
+
+        function diagonal(s, d) {
+            return `${s.y},${s.x} ${(s.y + d.y) / 2},${s.x} ${(s.y + d.y) / 2},${d.x} ${d.y},${d.x}`;
+        }
+
+        // 获取 VS Code API 实例
+        const vscodeApi = window.acquireVsCodeApi();
+        // 中间变量存储当前点击的节点
+        let currentClickedNode = null;
+
+        // 发送请求获取子节点
+        function fetchChildNodes(nodeName) {
+            const message = {
+                command: 'fetchChildNodes',
+                nodeName: nodeName
+            };
+            vscodeApi.postMessage(message);
+        }
+
+        // 发送函数调用信息
+        function sendFunctionCallerInfo(info) {
+            const message = {
+                command: 'sendFunctionCallerInfo',
+                functionCallerInfo: info
+            };
+            vscodeApi.postMessage(message);
+        }
+
+        // 接收来自VSCode消息
+        function receiveMessageFromVscode() {
+            window.addEventListener('message', event => {
+                const message = event.data;
+                switch (message.command) {
+                    case 'receiveChildNodes':
+                        // 处理从VSCode发送的子节点数据
+                        updateNodeWithChildData(currentClickedNode, message.childNodes);
+                        break;
+                    default:
+                        break;
+                }
+            });
+        }
+
+        // 更新节点数据
+        function updateNodeWithChildData(node, childData) {
+            const newChildrenData = transformData(childData).children;
+            node.data.children = newChildrenData;
+
+            const newHierarchy = d3.hierarchy(node.data, function (d) { return d.children; });
+            node.children = newHierarchy.children;
+
+            if (node.children) {
+                // 初始化新子节点的位置
+                node.children.forEach(child => {
+                    child.depth = node.depth + 1;
+                    child.x = node.x;
+                    child.y = node.y;
+                    child.parent = node;
+                });
+            }
+
+            update(node);
+        }
+
+        function click(event, d) {
+            if (d.children) {
+                d._children = d.children;
+                d.children = null;
+                update(d);
+            } else if (d._children) {
+                d.children = d._children;
+                d._children = null;
+                update(d);
+            } else {
+                currentClickedNode = d; // 存储当前点击的节点
+                fetchChildNodes(d.data.name);
+            }
+        }
+
+        function contextmenu(event, d) {
+            // 禁用默认的右键菜单
+            event.preventDefault();
+            sendFunctionCallerInfo({
+                filePath: d.data.filePath,
+                lineNumber: d.data.lineNumber
+            })
+        }
+
+        // 初始化时调用接收消息的函数
+        document.addEventListener('DOMContentLoaded', () => {
+            receiveMessageFromVscode();
+        });
+    </script>
+    <style>
+        body {
+            display: block;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        body #view {
+            display: block;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        :root {
+            --node-fill: #fff;
+            --node-stroke: steelblue;
+            --node-stroke-width: 3px;
+            --node-text-font: 12px sans-serif;
+            --link-stroke: #ccc;
+            --link-stroke-width: 2px;
+        }
+
+        .node rect {
+            fill: var(--node-fill);
+            stroke: var(--node-stroke);
+            stroke-width: var(--node-stroke-width);
+        }
+
+        .node text {
+            font: var(--node-text-font);
+            cursor: pointer;
+        }
+
+        .link {
+            fill: none;
+            stroke: var(--link-stroke);
+            stroke-width: var(--link-stroke-width);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="view">
+        <svg></svg>
+    </div>
+</body>
+
+</html>

@@ -332,7 +332,11 @@ async function getFunctionDefinition(functionName) {
 async function getFunctionCalls(functionName) {
     const projectDatabasePath = await getProjectDatabasePath();
     const functionCalls = await readFunctionCallsFromFile(path.join(projectDatabasePath, functionCallsFile));
-    return functionCalls[functionName] || { calledBy: [] };
+    
+    const result = {};
+    result[functionName] = functionCalls[functionName] || { calledBy: [] };
+    
+    return result;
 }
 
 module.exports = {

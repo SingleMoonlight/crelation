@@ -1,37 +1,64 @@
 const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
+const parse = require('../core/parse');
+const { print } = require('../util/log');
+const { getProjectPath} = require('../core/project');
 
 /**
  * 创建调用关系的树形图
  * @param {vscode.ExtensionContext} context
- * @param {object} treeDate
+ * @param {object} treeData
  */
-function createWebview(context, treeDate) {
+function createWebview(context, treeData) {
     const panel = vscode.window.createWebviewPanel(
-        'showRelations',
-        'Function Call Relations',
+        'CRelations',
+        'CRelations',
         vscode.ViewColumn.One,
         {
             enableScripts: true, // 启用JS，默认禁用
-            localResourceRoots: [vscode.Uri.file(path.join(context.extensionPath, 'src', 'view'))]
+            localResourceRoots: [vscode.Uri.file(path.join(context.extensionPath, 'src', 'view'))],
+            retainContextWhenHidden: true
         }
     );
 
-    let htmlContent = getWebviewContentWithConvertedPaths(panel, context, 'src/view/tree.html');
-    htmlContent = htmlContent.replace('%%TREE_DATA%%', JSON.stringify({
-        name: "root",
-        children: [
-            {
-                name: "bar",
-                children: [
-                    { name: "foo" },
-                    { name: "baz" }
-                ]
-            }
-        ]
-    }));
+    let htmlContent = getWebviewContentWithConvertedPaths(panel, context, 'src/view/index.html');
+    htmlContent = htmlContent.replace('%%TREE_DATA%%', JSON.stringify(treeData));
     panel.webview.html = htmlContent;
+
+    // 设置消息监听器
+    panel.webview.onDidReceiveMessage(
+        message => {
+            switch (message.command) {
+                case 'fetchChildNodes':
+                    const nodeName = message.nodeName;
+                    parse.getFunctionCalls(nodeName).then(childNodes => {
+                        // 发送消息回webview
+                        panel.webview.postMessage({ command: 'receiveChildNodes', childNodes });
+                    }).catch((err) => {     
+                        print('error', err);
+                    });
+                    return;
+                case 'sendFunctionCallerInfo':
+                    const functionCallerInfo = message.functionCallerInfo;
+                    const filePath = path.join(getProjectPath(), functionCallerInfo.filePath);
+                    const lineNumber = functionCallerInfo.lineNumber;
+
+                    // 控制vscode编辑器跳转到指定文件和行号
+                    vscode.workspace.openTextDocument(filePath).then(doc => {
+                        vscode.window.showTextDocument(doc).then(editor => {
+                            const position = new vscode.Position(lineNumber, 0);
+                            editor.selection = new vscode.Selection(position, position);
+                            editor.revealRange(new vscode.Range(position, position));
+                        });
+                    });
+                default:
+                    return;
+            }
+        },
+        undefined,
+        context.subscriptions
+    );
 }
 
 /**
