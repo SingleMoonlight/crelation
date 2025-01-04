@@ -23,8 +23,8 @@ function createWebview(context, treeData) {
     );
 
     let htmlContent = getWebviewContentWithConvertedPaths(panel, context, 'src/view/index.html');
-    htmlContent = htmlContent.replace('%%TREE_DATA%%', JSON.stringify(treeData));
     panel.webview.html = htmlContent;
+    panel.webview.postMessage({ command: 'receiveTreeData', treeData });
 
     // 设置消息监听器
     panel.webview.onDidReceiveMessage(

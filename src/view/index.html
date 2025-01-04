@@ -6,8 +6,11 @@
     <!-- 该路径必须是相对于插件根目录的路径，而且需要位于第一个属性位置 -->
     <script src="src/view/lib/d3.min.js"></script>
     <script type="module">
-        var treeData = `%%TREE_DATA%%`;
-        treeData = JSON.parse(treeData);
+        let rootData = null;
+        let treemap = null;
+        let i = 0,
+            duration = 200, // 动画时间
+            root;
 
         function transformData(data, parent = null) {
             let rootName = Object.keys(data)[0];
@@ -23,8 +26,6 @@
             });
             return root;
         }
-
-        let rootData = transformData(treeData);
 
         let margin = { top: 20, right: 90, bottom: 30, left: 90 },
             width = document.getElementById('view').clientWidth - margin.left - margin.right,
@@ -47,17 +48,6 @@
         // 模拟一次缩放和平移操作，将树拖到垂直居中
         d3.select("svg").call(d3.zoom().transform, d3.zoomIdentity.translate(margin.left, height / 2).scale(1));
 
-        let i = 0,
-            duration = 200, // 动画时间
-            root;
-
-        // 设置节点的宽度和高度间隔
-        let treemap = d3.tree().nodeSize([50, 0]);
-
-        root = d3.hierarchy(rootData, function (d) { return d.children; });
-        root.x0 = height / 2;
-        root.y0 = 0;
-
         function collapse(d) {
             if (d.children) {
                 d._children = d.children;
@@ -66,8 +56,19 @@
             }
         }
 
-        root.children.forEach(collapse);
-        update(root);
+        function initTreeData(treeData) {          
+            rootData = transformData(treeData);
+            // 设置节点的宽度和高度间隔
+            treemap = d3.tree().nodeSize([50, 0]);
+    
+            root = d3.hierarchy(rootData, function (d) { return d.children; });
+            root.x0 = height / 2;
+            root.y0 = 0;
+            if (root.children) {
+                root.children.forEach(collapse);
+            }
+            update(root);
+        }
 
         function update(source) {
             let treeData = treemap(root);
@@ -256,6 +257,10 @@
             window.addEventListener('message', event => {
                 const message = event.data;
                 switch (message.command) {
+                    case "receiveTreeData":
+                        // 初始化树数据
+                        initTreeData(message.treeData);
+                        break;
                     case 'receiveChildNodes':
                         // 处理从VSCode发送的子节点数据
                         updateNodeWithChildData(currentClickedNode, message.childNodes);
