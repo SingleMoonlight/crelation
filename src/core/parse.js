@@ -152,23 +152,52 @@ async function parseFile(filePath) {
 }
 
 /**
+ * 从声明器中提取函数名称
+ * @param {object} declarator 声明器节点
+*/
+function findFunctionNameInDeclarator(declarator) {
+    // 使用递归查找最内层的 identifier 节点
+    function traverse(node) {
+        if (node.type === 'identifier') {
+            return node.text;
+        }
+
+        for (const child of node.children) {
+            const result = traverse(child);
+            if (result) {
+                return result;
+            }
+        }
+
+        return null;
+    }
+
+    const functionName = traverse(declarator);
+    if (!functionName) {
+        print('debug', `No identifier found in declarator: ${declarator.toString()}`);
+    }
+
+    return functionName;
+}
+
+/**
  * 提取函数定义和调用信息
  * @param {object} node 语法树节点
  * @param {string} filePath 文件路径
  */
 function extractFunctionDefinitions(node, filePath) {
     const projectPath = getProjectPath();
-
-    node.children.forEach(child => {
+    for (const child of node.children) {
         if (child.type === 'function_definition') {
             const declarator = child.childForFieldName('declarator');
             let functionName = '';
-            if (declarator.type === 'function_declarator') {
-                const identifier = declarator.childForFieldName('declarator');
-                if (identifier.type === 'identifier') {
-                    functionName = identifier.text;
-                }
+
+            if (declarator) {
+                functionName = findFunctionNameInDeclarator(declarator);
+            } else {
+                print('debug', `Unexpected declarator type: ${declarator ? declarator.type : 'null'} in file: ${filePath}`);
             }
+
             if (functionName) {
                 if (!functionDefinitions[functionName]) {
                     functionDefinitions[functionName] = [];
@@ -189,10 +218,12 @@ function extractFunctionDefinitions(node, filePath) {
                     functionDefinitions[functionName].push(definitionInfo);
                     print('debug', `Found function definition: ${functionName} at ${filePath}:${child.startPosition.row + 1}`);
                 }
+            } else {
+                print('debug', `Failed to extract function name from declarator in file: ${filePath}`);
             }
         }
         extractFunctionDefinitions(child, filePath);
-    });
+    };
 }
 
 /**
@@ -204,16 +235,17 @@ function extractFunctionDefinitions(node, filePath) {
 function extractFunctionCalls(node, filePath, callerFunctionName = '') {
     const projectPath = getProjectPath();
 
-    node.children.forEach(child => {
+    for (const child of node.children) {
         if (child.type === 'function_definition') {
             const declarator = child.childForFieldName('declarator');
             let functionName = '';
-            if (declarator.type === 'function_declarator') {
-                const identifier = declarator.childForFieldName('declarator');
-                if (identifier.type === 'identifier') {
-                    functionName = identifier.text;
-                }
+
+            if (declarator) {
+                functionName = findFunctionNameInDeclarator(declarator);
+            } else {
+                print('debug', `Unexpected declarator type: ${declarator ? declarator.type : 'null'} in file: ${filePath}`);
             }
+
             if (functionName) {
                 print('debug', `Entering function: ${functionName} at ${filePath}:${child.startPosition.row + 1}`);
                 extractFunctionCalls(child, filePath, functionName);
@@ -248,7 +280,7 @@ function extractFunctionCalls(node, filePath, callerFunctionName = '') {
         } else {
             extractFunctionCalls(child, filePath, callerFunctionName);
         }
-    });
+    };
 }
 
 /**
@@ -332,10 +364,10 @@ async function getFunctionDefinition(functionName) {
 async function getFunctionCalls(functionName) {
     const projectDatabasePath = await getProjectDatabasePath();
     const functionCalls = await readFunctionCallsFromFile(path.join(projectDatabasePath, functionCallsFile));
-    
+
     const result = {};
     result[functionName] = functionCalls[functionName] || { calledBy: [] };
-    
+
     return result;
 }
 
