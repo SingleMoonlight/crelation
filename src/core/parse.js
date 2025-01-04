@@ -67,15 +67,16 @@ async function loadExistingData() {
  * 遍历目录，解析文件，并输出函数定义和调用关系到文件
  * @param {string} dir 目录路径
  * @param {boolean} forceRescan 是否强制重新扫描
+ * @param {boolean} isRecursion 是否递归调用
  */
-async function traverseDirectory(dir, forceRescan = false) {
+async function traverseDirectory(dir, forceRescan = false, isRecursion = false) {
     try {
         const lastScanTimestamp = await readLastScanTimestamp();
         const files = await fs.readdir(dir);
         let hasUpdatedFiles = false;
 
-        if (forceRescan) {
-            // 清空现有数据
+        // 如果强制重新扫描，只在第一次调用时清空数据
+        if (forceRescan && !isRecursion) {
             functionDefinitions = {};
             functionCalls = {};
         } else {
@@ -87,7 +88,7 @@ async function traverseDirectory(dir, forceRescan = false) {
             const filePath = path.join(dir, file);
             const stats = await fs.stat(filePath);
             if (stats.isDirectory()) {
-                const subDirUpdated = await traverseDirectory(filePath, forceRescan);
+                const subDirUpdated = await traverseDirectory(filePath, forceRescan, true);
                 if (subDirUpdated) {
                     hasUpdatedFiles = true;
                 }

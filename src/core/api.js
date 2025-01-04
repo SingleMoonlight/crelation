@@ -22,7 +22,7 @@ function initDatabase(context) {
     // 记录开始时间
     const startTime = Date.now();
 
-    parse.traverseDirectory(projectPath, true).then(() => {
+    parse.traverseDirectory(projectPath, true, false).then(() => {
         // 计算耗时
         const endTime = Date.now();
         const duration = endTime - startTime;
@@ -58,7 +58,7 @@ function updateDatabase(context) {
     // 记录开始时间
     const startTime = Date.now();
 
-    parse.traverseDirectory(projectPath, false).then(() => {
+    parse.traverseDirectory(projectPath, false, false).then(() => {
         // 计算耗时
         const endTime = Date.now();
         const duration = endTime - startTime;
@@ -94,7 +94,7 @@ function forceUpdateDatabase(context) {
     // 记录开始时间
     const startTime = Date.now();
 
-    parse.traverseDirectory(projectPath, true).then(() => {
+    parse.traverseDirectory(projectPath, true, false).then(() => {
         // 计算耗时
         const endTime = Date.now();
         const duration = endTime - startTime;
