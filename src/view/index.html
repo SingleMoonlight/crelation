@@ -36,8 +36,8 @@
             .attr("height", "100%")
             .call(d3.zoom()
                 .filter(function (event) {
-                    // 禁用双击事件的缩放行为
-                    return event.type !== 'dblclick';
+                    // 禁用双击事件、鼠标滚动和触摸板/触摸屏的捏合手势
+                    return event.type !== 'dblclick' && event.type !== 'wheel' && event.type !== 'touchstart';
                 })
                 .on("zoom", function (event) {
                     svg.attr("transform", event.transform);
@@ -56,11 +56,11 @@
             }
         }
 
-        function initTreeData(treeData) {          
+        function initTreeData(treeData) {
             rootData = transformData(treeData);
             // 设置节点的宽度和高度间隔
             treemap = d3.tree().nodeSize([50, 0]);
-    
+
             root = d3.hierarchy(rootData, function (d) { return d.children; });
             root.x0 = height / 2;
             root.y0 = 0;
