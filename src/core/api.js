@@ -129,8 +129,16 @@ function showRelations(context) {
     const selection = editor.selection;
     const text = editor.document.getText(selection);
 
+    if (!text || text.trim() === '') {
+        return;
+    }
+
     // 查找调用链
-    parse.getFunctionCalls(text).then(result => {
+    parse.getFunctionCalls(text).then(result => {        
+        if (result[text].calledBy.length === 0) {
+            showInfoMessage('No relations found for function "' + text + '"');
+            return;
+        }
         createWebview(context, result);
     }).catch((err) => {     
         print('error', err); 

@@ -4,6 +4,7 @@ const path = require('path');
 const parse = require('../core/parse');
 const { print } = require('../util/log');
 const { getProjectPath } = require('../core/project');
+const { showInfoMessage } = require('./message');
 
 /**
  * 创建调用关系的树形图
@@ -33,6 +34,10 @@ function createWebview(context, treeData) {
                 case 'fetchChildNodes':
                     const nodeName = message.nodeName;
                     parse.getFunctionCalls(nodeName).then(childNodes => {
+                        if (childNodes[nodeName].calledBy.length === 0) {
+                            showInfoMessage('No relations found for function "' + nodeName + '"');
+                            return;
+                        }
                         // 发送消息回webview
                         panel.webview.postMessage({ command: 'receiveChildNodes', childNodes });
                     }).catch((err) => {
