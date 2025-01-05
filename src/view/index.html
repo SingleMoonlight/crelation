@@ -138,6 +138,30 @@
                 .attr("text-anchor", "middle")
                 .text(d => d.data.name);
 
+            // 绘制折叠符号
+            nodeEnter.filter(d => d._children)
+                .append('circle')
+                .attr('class', 'expand-symbol')
+                .attr('cx', d => d.nodeWidth + 6) // 挨在节点右侧
+                .attr('cy', 0)
+                .attr('r', 6)
+
+            nodeEnter.filter(d => d._children)
+                .append('line')
+                .attr('class', 'expand-symbol')
+                .attr('x1', d => d.nodeWidth + 3)
+                .attr('y1', 0)
+                .attr('x2', d => d.nodeWidth + 9)
+                .attr('y2', 0)
+
+            nodeEnter.filter(d => d._children)
+                .append('line')
+                .attr('class', 'expand-symbol')
+                .attr('x1', d => d.nodeWidth + 6)
+                .attr('y1', -3)
+                .attr('x2', d => d.nodeWidth + 6)
+                .attr('y2', 3)
+
             nodeEnter.filter(d => d.depth !== 0)
                 .on('mouseover', function (event, d) {
                     d3.select(this).append("text")
@@ -157,6 +181,32 @@
 
             nodeUpdate.select('rect.node')
                 .attr('cursor', 'pointer')
+
+            nodeUpdate.selectAll('circle.expand-symbol').remove();
+            nodeUpdate.selectAll('line.expand-symbol').remove();
+
+            nodeUpdate.filter(d => d._children)
+                .append('circle')
+                .attr('class', 'expand-symbol')
+                .attr('cx', d => d.nodeWidth + 6) // Position to the right of the node
+                .attr('cy', 0)
+                .attr('r', 6)
+
+            nodeUpdate.filter(d => d._children)
+                .append('line')
+                .attr('class', 'expand-symbol')
+                .attr('x1', d => d.nodeWidth + 3)
+                .attr('y1', 0)
+                .attr('x2', d => d.nodeWidth + 9)
+                .attr('y2', 0)
+
+            nodeUpdate.filter(d => d._children)
+                .append('line')
+                .attr('class', 'expand-symbol')
+                .attr('x1', d => d.nodeWidth + 6)
+                .attr('y1', -3)
+                .attr('x2', d => d.nodeWidth + 6)
+                .attr('y2', 3)
 
             let nodeExit = node.exit().transition()
                 .duration(duration)
@@ -356,6 +406,14 @@
         .arrow {
             fill: var(--vscode-editor-foreground);
         }
+
+        .expand-symbol {
+            fill: none;
+            stroke: var(--vscode-editor-foreground);
+            stroke-width: 2px;
+            cursor: pointer;
+        }
+        
     </style>
 </head>
 
