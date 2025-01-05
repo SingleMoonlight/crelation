@@ -131,7 +131,6 @@
                 .attr('x', 0)
                 .attr('y', -15)
                 .attr('width', d => d.nodeWidth)
-                .style("fill", d => d._children ? "lightsteelblue" : "#fff");
 
             nodeEnter.append('text')
                 .attr("dy", ".35em")
@@ -158,7 +157,6 @@
 
             nodeUpdate.select('rect.node')
                 .attr('cursor', 'pointer')
-                .style("fill", d => d._children ? "lightsteelblue" : "#fff");
 
             let nodeExit = node.exit().transition()
                 .duration(duration)
@@ -223,7 +221,7 @@
             .attr("orient", "auto")
             .append("path")
             .attr("d", "M10,-5L0,0L10,5")
-            .attr("fill", "#ccc");
+            .attr("class", "arrow");
 
         function diagonal(s, d) {
             return `${s.y},${s.x} ${(s.y + d.y) / 2},${s.x} ${(s.y + d.y) / 2},${d.x} ${d.y},${d.x}`;
@@ -337,30 +335,26 @@
             overflow: hidden;
         }
 
-        :root {
-            --node-fill: #fff;
-            --node-stroke: steelblue;
-            --node-stroke-width: 3px;
-            --node-text-font: 12px sans-serif;
-            --link-stroke: #ccc;
-            --link-stroke-width: 2px;
-        }
-
         .node rect {
-            fill: var(--node-fill);
-            stroke: var(--node-stroke);
-            stroke-width: var(--node-stroke-width);
+            fill: var(--vscode-editor-background);
+            stroke: var(--vscode-editor-foreground);
+            stroke-width: 2px;
         }
 
         .node text {
-            font: var(--node-text-font);
+            font: 12px sans-serif;
+            fill: var(--vscode-editor-foreground);
             cursor: pointer;
         }
 
         .link {
             fill: none;
-            stroke: var(--link-stroke);
-            stroke-width: var(--link-stroke-width);
+            stroke: var(--vscode-editor-foreground);
+            stroke-width: 2px;
+        }
+
+        .arrow {
+            fill: var(--vscode-editor-foreground);
         }
     </style>
 </head>

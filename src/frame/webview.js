@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const parse = require('../core/parse');
 const { print } = require('../util/log');
-const { getProjectPath} = require('../core/project');
+const { getProjectPath } = require('../core/project');
 
 /**
  * 创建调用关系的树形图
@@ -35,7 +35,7 @@ function createWebview(context, treeData) {
                     parse.getFunctionCalls(nodeName).then(childNodes => {
                         // 发送消息回webview
                         panel.webview.postMessage({ command: 'receiveChildNodes', childNodes });
-                    }).catch((err) => {     
+                    }).catch((err) => {
                         print('error', err);
                     });
                     return;
