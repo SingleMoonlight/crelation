@@ -15,7 +15,7 @@ function initDatabase(context) {
     project.addProject();
 
     statusbar.showStatusbarItem();
-    statusbar.setStatusbarText('Scanning...');
+    statusbar.setStatusbarText('Scanning...', true);
 
     showInfoMessage('Init database');
 
@@ -51,7 +51,7 @@ function updateDatabase(context) {
     const projectPath = project.getProjectPath();
 
     statusbar.showStatusbarItem();
-    statusbar.setStatusbarText('Scanning...');
+    statusbar.setStatusbarText('Scanning...', true);
 
     showInfoMessage('Update database');
 
@@ -87,7 +87,7 @@ function forceUpdateDatabase(context) {
     const projectPath = project.getProjectPath();
 
     statusbar.showStatusbarItem();
-    statusbar.setStatusbarText('Scanning...');
+    statusbar.setStatusbarText('Scanning...', true);
 
     showInfoMessage('Force update database');
 

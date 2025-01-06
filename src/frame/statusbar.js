@@ -2,6 +2,7 @@ const vscode = require('vscode');
 
 const textPrefix = 'CRelation: ';
 let statusbarItem = null;
+let isLoading = false;
 
 /**
  * 初始化状态栏
@@ -22,6 +23,7 @@ function initStatusbar(context) {
  */
 function hideStatusbarItem() {
     statusbarItem.hide();
+    isLoading = false;
 }
 
 /**
@@ -34,12 +36,19 @@ function showStatusbarItem() {
 /**
  * 设置状态栏文本
  * @param {string} text 
+ * @param {boolean} isLoading - 是否显示加载图标
  */
-function setStatusbarText(text) {
-    statusbarItem.text = textPrefix + text;
+function setStatusbarText(text, isLoading = false) {
+    if (isLoading) {
+        statusbarItem.text = `$(sync~spin) ${textPrefix}${text}`;
+        isLoading = true;
+    } else {
+        statusbarItem.text = `${textPrefix}${text}`;
+        isLoading = false;
+    }
 }
 
-module.exports = { 
+module.exports = {
     initStatusbar,
     hideStatusbarItem,
     showStatusbarItem,
