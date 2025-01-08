@@ -1,65 +1,38 @@
-# crelation README
+# C Relation VS Code Extension
 
-This is the README for your extension "crelation". After writing up a brief description, we recommend including the following sections.
+C Language Call Chain Visualization Plugin.
+
+## Details
+
+This plugin is used to visualize the call chain of the C language program.
+
+How to use:
+
+1. Open your C language project.
+2. Open the command palette (Ctrl+Shift+P) and select "C Relation: Init database". The first time it will take a long time to scan the project and build the database.
+3. Select a function in your C language project. Then open right click menu and select "Show Relations". You can see the call chain of the function in a new panel.
+4. In the new panel, you can click on the function name to collapse or expand the call chain. Moreover, you can right click on the function name to jump to the function code. When the tree node is too many, you can drag the tree to make it easier to read.
+5. If you update the C language project, you can update the database by running the command "C Relation: Update database". It will only scan the updated files. If you want to update the whole database, you can run the command "C Relation: Force update database".
+
+![](images/how_to_use.gif)
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+### Activation Events
++ onStartupFinished
 
-For example if there is an image subfolder under your extension project workspace:
+### Commands
 
-\!\[feature X\]\(images/feature-x.png\)
+| ID                      | Title                            | Description                               |
+| ----------------------- | -------------------------------- | ----------------------------------------- |
+| crelation.init          | C Relation: Init database         | Scan the project and build the database   |
+| crelation.update        | C Relation: Update database       | Scan the changed file and update database |
+| crelation.forceUpdate   | C Relation: Force update database | Scan the project and rebuild the database |
+| crelation.showRelations | Show Relations                   | Show the function call                    |
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+### Settings
 
-## Requirements
-
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
-
-## Extension Settings
-
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
-This extension contributes the following settings:
-
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
-
-## Known Issues
-
-Calling out known issues can help limit users opening duplicate issues against your extension.
-
-## Release Notes
-
-Users appreciate release notes as you update your extension.
-
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
----
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code.  Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux)
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux)
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+| ID                     | Description                        | Default                 |
+| ---------------------- | ---------------------------------- | ----------------------- |
+| crelation.dataSavePath | The path to save the database file | `<username>/.crelation` |
+| crelation.logLevel     | The log level of the extension     | `off`                   |

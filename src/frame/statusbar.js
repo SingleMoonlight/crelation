@@ -1,6 +1,6 @@
 const vscode = require('vscode');
 
-const textPrefix = 'CRelation: ';
+const textPrefix = 'C Relation: ';
 let statusbarItem = null;
 let isLoading = false;
 

@@ -1,8 +1,10 @@
 {
   "name": "crelation",
-  "displayName": "CRelation",
-  "description": "A plugin that visualizes the relationship between C function calls",
-  "version": "0.0.1",
+  "displayName": "C Relation",
+  "description": "C Language Call Chain Visualization Plugin",
+  "icon": "images/icon.png",
+  "publisher": "singlemoonlight",
+  "version": "1.0.0",
   "engines": {
     "vscode": "^1.96.0"
   },
@@ -10,22 +12,22 @@
     "Other"
   ],
   "activationEvents": [
-    "*"
+    "onStartupFinished"
   ],
   "main": "./extension.js",
   "contributes": {
     "commands": [
       {
         "command": "crelation.init",
-        "title": "CRelation: Init database"
+        "title": "C Relation: Init database"
       },
       {
         "command": "crelation.update",
-        "title": "CRelation: Update database"
+        "title": "C Relation: Update database"
       },
       {
         "command": "crelation.forceUpdate",
-        "title": "CRelation: Force update database"
+        "title": "C Relation: Force update database"
       },
       {
         "command": "crelation.showRelations",
@@ -42,21 +44,21 @@
     },
     "configuration": [
       {
-        "title": "插件数据保存路径",
+        "title": "Data Save Path",
         "properties": {
           "crelation.dataSavePath": {
             "type": "string",
-            "description": "扫描项目生成的数据将会保存在该路径下。"
+            "description": "The path to save the database file."
           }
         }
       },
       {
-        "title": "插件日志等级",
+        "title": "Log Level",
         "properties": {
           "crelation.logLevel": {
             "type": "string",
             "default": "off",
-            "description": "插件日志等级，等级越高，日志越详细，默认关闭。",
+            "description": "The log level of the extension.",
             "enum": [
               "debug",
               "info",
