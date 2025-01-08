@@ -14,7 +14,9 @@ How to use:
 4. In the new panel, you can click on the function name to collapse or expand the call chain. Moreover, you can right click on the function name to jump to the function code. When the tree node is too many, you can drag the tree to make it easier to read.
 5. If you update the C language project, you can update the database by running the command "C Relation: Update database". It will only scan the updated files. If you want to update the whole database, you can run the command "C Relation: Force update database".
 
-![](images/how_to_use.gif)
+![How to use](images/how_to_use.gif)
+
+If you have any questions, please contact me at [github](https://github.com/SingleMoonlight/crelation).
 
 ## Features
 
