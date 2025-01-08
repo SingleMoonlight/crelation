@@ -4,6 +4,10 @@
   "description": "C Language Call Chain Visualization Plugin",
   "icon": "images/icon.png",
   "publisher": "singlemoonlight",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SingleMoonlight/crelation"
+  },
   "version": "1.0.0",
   "engines": {
     "vscode": "^1.96.0"
