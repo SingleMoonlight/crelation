@@ -8,9 +8,9 @@
     "type": "git",
     "url": "https://github.com/SingleMoonlight/crelation"
   },
-  "version": "1.0.1",
+  "version": "1.0.2",
   "engines": {
-    "vscode": "^1.96.0"
+    "vscode": "^1.60.0"
   },
   "categories": [
     "Other"
