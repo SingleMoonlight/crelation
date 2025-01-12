@@ -1,5 +1,10 @@
 # Change Log
 
+## 1.0.3
+
+- fix: fix promise error when running init command
+- chore: create license with MIT
+
 ## 1.0.2
 
 - chore: modify minimum required version of VS Code to 1.60.0

@@ -64,6 +64,34 @@ async function loadExistingData() {
 }
 
 /**
+ * 清空现有的函数定义和调用关系
+ */
+async function resetExistingData() {
+    functionDefinitions = {};
+    functionCalls = {};
+
+    // 如果文件存在，删除文件
+    const projectDatabasePath = await getProjectDatabasePath();
+    const files = [functionDefinitionsFile, functionCallsFile];
+    for (const file of files) {
+        const filePath = path.join(projectDatabasePath, file);
+        try {
+            await fs.access(filePath);
+            await fs.unlink(filePath);
+        } catch (err) {
+            if (err.code !== 'ENOENT') {
+                print('error', `Error deleting file ${filePath}`);
+                print('error', err);
+            }
+        }
+    }
+
+    // 写入一个空对象到文件
+    await outputFunctionDefinitionsToFile(path.join(projectDatabasePath, functionDefinitionsFile));
+    await outputFunctionCallsToFile(path.join(projectDatabasePath, functionCallsFile));
+}
+
+/**
  * 遍历目录，解析文件，并输出函数定义和调用关系到文件
  * @param {string} dir 目录路径
  * @param {boolean} forceRescan 是否强制重新扫描
@@ -77,8 +105,7 @@ async function traverseDirectory(dir, forceRescan = false, isRecursion = false) 
 
         // 如果强制重新扫描，只在第一次调用时清空数据
         if (forceRescan && !isRecursion) {
-            functionDefinitions = {};
-            functionCalls = {};
+            await resetExistingData();
         } else {
             // 加载现有的函数定义和调用关系
             await loadExistingData();
