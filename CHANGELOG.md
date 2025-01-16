@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.0.4
+
+- fix: fix dynamic import nanoid error
+- chore: modify default log level to error
+- docs: update readme
+
 ## 1.0.3
 
 - fix: fix promise error when running init command

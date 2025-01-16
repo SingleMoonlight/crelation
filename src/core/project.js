@@ -1,6 +1,7 @@
 const vscode = require('vscode');
 const path = require('path');
 const fs = require('fs').promises;
+const crypto = require('crypto');
 const { getDataSavePath } = require('../frame/setting');
 const { print } = require('../util/log');
 
@@ -47,15 +48,23 @@ async function getProjects() {
 }
 
 /**
+ * 生成较短的唯一标识符
+ * @returns 短 UUID
+ */
+function generateShortUid(length = 8) {
+    return crypto.randomBytes(length).toString('hex');
+}
+
+/**
  * 添加项目
  */
 async function addProject() {
-    const { nanoid } = await import('nanoid');
     const projectPath = getProjectPath();
     const projectName = getProjectName();
 
     // 生成唯一的 uid
-    const uid = nanoid(10);
+    const uid = generateShortUid();
+    print('info', `Generated UID: ${uid}`);
 
     // 读取现有的 project.json 文件内容
     let projects = await getProjects();

@@ -8,7 +8,7 @@
     "type": "git",
     "url": "https://github.com/SingleMoonlight/crelation"
   },
-  "version": "1.0.3",
+  "version": "1.0.4",
   "engines": {
     "vscode": "^1.60.0"
   },
@@ -61,7 +61,7 @@
         "properties": {
           "crelation.logLevel": {
             "type": "string",
-            "default": "off",
+            "default": "error",
             "description": "The log level of the extension.",
             "enum": [
               "debug",
@@ -89,7 +89,6 @@
     "eslint": "^9.16.0"
   },
   "dependencies": {
-    "nanoid": "^5.0.9",
     "tree-sitter": "^0.22.1",
     "tree-sitter-c": "^0.23.4"
   }

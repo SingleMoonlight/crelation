@@ -16,7 +16,15 @@ How to use:
 
 ![How to use](images/how_to_use.gif)
 
+## Issues
 If you have any questions, please contact me at [github](https://github.com/SingleMoonlight/crelation).
+
+Before asking questions, please open the VS Code output panel and check the log. It's better if you can open `Help` -> `Toggle Developer Tools` to see if there are any errors. It will help me to solve your problem.
+
+## Q&A
++ command 'crelation.init' not found
+
+If you encounter this problem, it most be because you uses the extension in some Linux system which is not supported GLIBCXX_3.4.29. You can use `strings /usr/lib/x86_64-linux-gnu/libstdc++.so.6 | grep GLIBCXX` to check the version of GLIBCXX. If the version is lower than 3.4.29, you can try to install a newer version of GLIBCXX. There is no a good solution for this problem at present.
 
 ## Features
 
