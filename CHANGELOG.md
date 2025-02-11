@@ -1,5 +1,10 @@
 # Change Log
 
+## 1.0.5
+
+- feat: add auto init database setting
+- docs: update readme
+
 ## 1.0.4
 
 - fix: fix dynamic import nanoid error

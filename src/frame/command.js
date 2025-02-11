@@ -1,5 +1,6 @@
 const vscode = require('vscode');
 const api = require('../core/api');
+const setting = require('./setting');
 
 /**
  * 注册命令
@@ -22,6 +23,10 @@ function initCommand(context)
 	registerCommand(context, 'crelation.update', api.updateDatabase);
 	registerCommand(context, 'crelation.forceUpdate', api.forceUpdateDatabase);
 	registerCommand(context, 'crelation.showRelations', api.showRelations);
+
+	if (setting.getAutoInitDatabase()) {
+		api.initDatabase(context);
+	}
 }
 
 module.exports = {

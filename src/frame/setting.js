@@ -37,6 +37,16 @@ function getDataSavePath()
 }
 
 /**
+ * 获取自动初始化数据库
+ * @returns {boolean} 是否自动初始化数据库
+ */
+function getAutoInitDatabase()
+{
+    const config = vscode.workspace.getConfiguration('crelation');
+    return config.get('autoInitDatabase');
+}
+
+/**
  * 获取日志级别
  * @returns {string} 日志级别
  */
@@ -49,5 +59,6 @@ function getLogLevel()
 module.exports = {
 	initSetting,
     getDataSavePath,
+    getAutoInitDatabase,
     getLogLevel
 };

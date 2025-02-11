@@ -8,7 +8,7 @@
     "type": "git",
     "url": "https://github.com/SingleMoonlight/crelation"
   },
-  "version": "1.0.4",
+  "version": "1.0.5",
   "engines": {
     "vscode": "^1.60.0"
   },
@@ -53,6 +53,16 @@
           "crelation.dataSavePath": {
             "type": "string",
             "description": "The path to save the database file."
+          }
+        }
+      },
+      {
+        "title": "Auto init database",
+        "properties": {
+          "crelation.autoInitDatabase": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether to init the database automatically when opening a project."
           }
         }
       },
