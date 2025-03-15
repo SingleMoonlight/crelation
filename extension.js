@@ -10,7 +10,7 @@ const { initStatusbar } = require('./src/frame/statusbar');
  * @param {vscode.ExtensionContext} context
  */
 function activate(context) {
-	initSetting();
+	initSetting(context);
 	initStatusbar(context);
 	initCommand(context);
 }

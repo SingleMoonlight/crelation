@@ -1,4 +1,4 @@
-const { getLogLevel } = require('../frame/setting');
+const vscode = require('vscode');
 
 const COLORS = {
     RESET: '\x1b[0m',
@@ -15,6 +15,16 @@ const LOG_LEVELS = {
     ERROR: { level:1, color: COLORS.RED, label: 'ERROR' },
     OFF: { level:0, color: COLORS.RESET, label: 'OFF' },
 };
+
+/**
+ * 获取日志级别
+ * @returns {string} 日志级别
+ */
+function getLogLevel()
+{
+    const config = vscode.workspace.getConfiguration('crelation');
+    return config.get('logLevel');
+}
 
 /**
  * 打印日志

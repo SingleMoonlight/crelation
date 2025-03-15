@@ -52,7 +52,7 @@
         "properties": {
           "crelation.dataSavePath": {
             "type": "string",
-            "description": "The path to save the database file."
+            "markdownDescription": "The path to save the database file. If changed, please **REBOOT** the VS Code to take effect."
           }
         }
       },

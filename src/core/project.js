@@ -5,8 +5,6 @@ const crypto = require('crypto');
 const { getDataSavePath } = require('../frame/setting');
 const { print } = require('../util/log');
 
-const projectDataFile = path.join(getDataSavePath(), 'project.json');
-
 /**
  * 获取当前打开项目的完整目录
  * @returns 项目路径
@@ -37,6 +35,7 @@ function getProjectName() {
  */
 async function getProjects() {
     try {
+        const projectDataFile = path.join(getDataSavePath(), 'project.json');
         const data = await fs.readFile(projectDataFile, 'utf8');
         return JSON.parse(data);
     } catch (err) {
@@ -88,6 +87,7 @@ async function addProject() {
 
     // 写入更新后的 project.json 文件
     try {
+        const projectDataFile = path.join(getDataSavePath(), 'project.json');
         await fs.writeFile(projectDataFile, JSON.stringify(projects, null, 2), 'utf8');
         print('info', 'Project added successfully.');
     } catch (err) {
