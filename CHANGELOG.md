@@ -1,5 +1,10 @@
 # Change Log
 
+## 1.0.6
+
+- fix: show relations failed if change the data save path
+- feat: add setting that set the position of relations shown
+
 ## 1.0.5
 
 - feat: add auto init database setting

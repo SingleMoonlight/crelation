@@ -5,17 +5,20 @@ const parse = require('../core/parse');
 const { print } = require('../util/log');
 const { getProjectPath } = require('../core/project');
 const { showInfoMessage } = require('./message');
+const { getShowRelationInSecondColumn } = require('./setting');
 
 /**
  * 创建调用关系的树形图
  * @param {vscode.ExtensionContext} context
- * @param {object} treeData
+ * @param {string} text 查询的函数名
+ * @param {object} treeData 查询的函数掉用关系数据
  */
-function createWebview(context, treeData) {
+function createWebview(context, text, treeData) {
+    const column = getShowRelationInSecondColumn() ? vscode.ViewColumn.Two : vscode.ViewColumn.One;
     const panel = vscode.window.createWebviewPanel(
         'CRelations',
-        'CRelations',
-        vscode.ViewColumn.One,
+        text,
+        column,
         {
             enableScripts: true, // 启用JS，默认禁用
             localResourceRoots: [vscode.Uri.file(path.join(context.extensionPath, 'src', 'view'))],

@@ -8,7 +8,7 @@
     "type": "git",
     "url": "https://github.com/SingleMoonlight/crelation"
   },
-  "version": "1.0.5",
+  "version": "1.0.6",
   "engines": {
     "vscode": "^1.60.0"
   },
@@ -63,6 +63,16 @@
             "type": "boolean",
             "default": false,
             "description": "Whether to init the database automatically when opening a project."
+          }
+        }
+      },
+      {
+        "title": "The position of relations shown",
+        "properties": {
+          "crelation.showRelationsInSecondColumn": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether to show relations in the second column editor."
           }
         }
       },

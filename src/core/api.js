@@ -124,7 +124,7 @@ async function showRelations(context) {
         showInfoMessage('No relations found for function "' + text + '"');
         return;
     }
-    createWebview(context, result);
+    createWebview(context, text, result);
 
     if (result === null) {
         showInfoMessage('Query relations failed');
