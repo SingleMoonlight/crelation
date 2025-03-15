@@ -14,32 +14,84 @@ let dataSavePath = '';
  */
 async function performMigration(oldPath, newPath) {
     try {
-        // 确保目标目录存在
-        fs.mkdir(newPath, { recursive: true });
+        // 标准化路径处理（解决Windows盘符路径问题）
+        oldPath = path.normalize(oldPath);
+        newPath = path.normalize(newPath);
 
-        // 读取源目录内容
-        const entries = await fs.readdir(oldPath, { withFileTypes: true });
+        // 校验源路径有效性
+        try {
+            await fs.access(oldPath);
+        } catch {
+            print('warn', `源路径不存在: ${oldPath}`);
+            return;
+        }
 
-        // 遍历所有条目
-        for (const entry of entries) {
-            const srcPath = path.join(oldPath, entry.name);
-            const destPath = path.join(newPath, entry.name);
+        // 创建完整目标路径结构（确保多级目录存在）
+        const createParentDir = async (targetPath) => {
+            const parentDir = path.dirname(targetPath);
+            try {
+                await fs.access(parentDir);
+            } catch {
+                await createParentDir(parentDir);
+                await fs.mkdir(parentDir);
+            }
+        };
+        await createParentDir(newPath);
+        await fs.mkdir(newPath, { recursive: true });
 
-            if (entry.isDirectory()) {
-                // 递归处理子目录
-                await performMigration(srcPath, destPath);
-            } else {
-                // 移动文件（跨设备安全方案）
-                await fs.copyFile(srcPath, destPath);
-                await fs.unlink(srcPath); // 删除原文件
+        // 增强版目录遍历（处理符号链接等特殊情况）
+        const safeReaddir = async (dirPath) => {
+            try {
+                return await fs.readdir(dirPath, { withFileTypes: true });
+            } catch (error) {
+                print('warn', `跳过不可读目录: ${dirPath}`);
+                return [];
+            }
+        };
+
+        // 优化文件操作时序（先处理文件再处理目录）
+        const entries = await safeReaddir(oldPath);
+        const files = entries.filter(e => e.isFile());
+        const dirs = entries.filter(e => e.isDirectory());
+
+        // 处理文件（带进度跟踪）
+        for (const file of files) {
+            const src = path.join(oldPath, file.name);
+            const dest = path.join(newPath, file.name);
+            
+            // 确保目标目录存在
+            await fs.mkdir(path.dirname(dest), { recursive: true });
+            
+            try {
+                await fs.copyFile(src, dest);
+                await fs.unlink(src);
+            } catch (error) {
+                print('error', `文件迁移失败: ${src} → ${dest} | ${error.message}`);
             }
         }
 
-        // 删除空目录
-        await fs.rmdir(oldPath);
-        
+        // 递归处理子目录
+        for (const dir of dirs) {
+            const src = path.join(oldPath, dir.name);
+            const dest = path.join(newPath, dir.name);
+            await performMigration(src, dest);
+        }
+
+        // 安全删除源目录（处理残留文件）
+        try {
+            await fs.rm(oldPath, { 
+                recursive: true,
+                force: true,
+                maxRetries: 3,
+                retryDelay: 500
+            });
+        } catch (error) {
+            print('warn', `目录删除失败: ${oldPath} | ${error.message}`);
+        }
+
     } catch (error) {
-        print('error', `Migration failed: ${error.message}`);
+        print('error', `迁移失败: ${error.message}`);
+        throw error;
     }
 }
 

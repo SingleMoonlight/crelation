@@ -1,5 +1,10 @@
 # Change Log
 
+## 1.0.7
+
+- fix: migrate data failed when using multilevel directory
+- docs: update readme
+
 ## 1.0.6
 
 - fix: show relations failed if change the data save path

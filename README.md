@@ -45,5 +45,6 @@ If you encounter this problem, it most be because you uses the extension in some
 | ID                     | Description                        | Default                 |
 | ---------------------- | ---------------------------------- | ----------------------- |
 | crelation.dataSavePath | The path to save the database file | `<username>/.crelation` |
+| crelation.showRelationsInSecondColumn | Whether to show relations in the second column editor | `off` |
 | crelation.autoInitDatabase     | Whether to init the database automatically when opening a project     | `off`                   |
 | crelation.logLevel     | The log level of the extension     | `error`                   |
