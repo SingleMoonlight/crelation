@@ -42,7 +42,7 @@
       "editor/context": [
         {
           "command": "crelation.showRelations",
-          "when": "editorTextFocus"
+          "when": "editorTextFocus && editorHasSelection"
         }
       ]
     },
