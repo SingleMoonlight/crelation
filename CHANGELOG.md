@@ -1,5 +1,9 @@
 # Change Log
 
+## 1.0.8
+- fix: only show relations when editor has selection
+- docs: update readme, add custom shortcut key description
+
 ## 1.0.7
 
 - fix: migrate data failed when using multilevel directory
@@ -9,6 +13,7 @@
 
 - fix: show relations failed if change the data save path
 - feat: add setting that set the position of relations shown
+- feat: display the function name in the panel title
 
 ## 1.0.5
 
