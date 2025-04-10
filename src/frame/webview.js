@@ -52,14 +52,18 @@ function createWebview(context, text, treeData) {
                     const filePath = path.join(getProjectPath(), functionCallerInfo.filePath);
                     const lineNumber = functionCallerInfo.lineNumber;
 
-                    // 控制vscode编辑器跳转到指定文件和行号
                     vscode.workspace.openTextDocument(filePath).then(doc => {
-                        vscode.window.showTextDocument(doc).then(editor => {
-                            const position = new vscode.Position(lineNumber, 0);
-                            editor.selection = new vscode.Selection(position, position);
-                            editor.revealRange(new vscode.Range(position, position));
+                        vscode.window.showTextDocument(doc, {
+                            viewColumn: vscode.ViewColumn.One, // 强制在第一个视图列打开
+                            selection: new vscode.Range(
+                                new vscode.Position(lineNumber, 0),
+                                new vscode.Position(lineNumber, 0)
+                            )
+                        }).then(editor => {
+                            editor.revealRange(editor.selection);
                         });
                     });
+                    return;
                 default:
                     return;
             }
