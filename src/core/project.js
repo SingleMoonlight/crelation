@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs').promises;
 const crypto = require('crypto');
 const { getDataSavePath } = require('../frame/setting');
-const { print } = require('../util/log');
+const { print } = require('../frame/channel');
 
 /**
  * 获取当前打开项目的完整目录

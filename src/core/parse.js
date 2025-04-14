@@ -3,7 +3,7 @@ const path = require('path');
 const Parser = require('tree-sitter');
 const CParser = require('tree-sitter-c');
 const { getProjectPath, getProjectDatabasePath } = require('./project');
-const { print } = require('../util/log');
+const { print } = require('../frame/channel');
 
 // 初始化 Tree-Sitter 解析器
 const parser = new Parser();
@@ -42,7 +42,6 @@ async function writeLastScanTimestamp(timestamp) {
         const projectDatabasePath = await getProjectDatabasePath();
         await fs.writeFile(path.join(projectDatabasePath, lastScanTimestampFile), JSON.stringify({ timestamp }), 'utf8');
     } catch (err) {
-        print('error', 'Error writing last scan timestamp');
         print('error', err);
     }
 }
@@ -58,7 +57,6 @@ async function loadExistingData() {
         Object.assign(functionDefinitions, JSON.parse(definitionsData));
         Object.assign(functionCalls, JSON.parse(callsData));
     } catch (err) {
-        print('error', 'Error reading existing data');
         print('error', err);
     }
 }
@@ -80,7 +78,6 @@ async function resetExistingData() {
             await fs.unlink(filePath);
         } catch (err) {
             if (err.code !== 'ENOENT') {
-                print('error', `Error deleting file ${filePath}`);
                 print('error', err);
             }
         }
@@ -141,7 +138,6 @@ async function traverseDirectory(dir, forceRescan = false, isRecursion = false) 
 
         return hasUpdatedFiles;
     } catch (err) {
-        print('error', `Error reading directory ${dir}`);
         print('error', err);
         return false;
     }
@@ -174,7 +170,6 @@ async function parseFile(filePath) {
         extractFunctionDefinitions(root, filePath);
         extractFunctionCalls(root, filePath);
     } catch (err) {
-        print('error', `Error parsing file ${filePath}`);
         print('error', err);
     }
 }
@@ -321,7 +316,6 @@ async function outputFunctionDefinitionsToFile(outputFilePath) {
         await fs.writeFile(outputFilePath, data, 'utf8');
         print('info', `Function definitions have been written to ${outputFilePath}`);
     } catch (err) {
-        print('error', `Error writing to file ${outputFilePath}`);
         print('error', err);
     }
 }
@@ -336,7 +330,6 @@ async function outputFunctionCallsToFile(outputFilePath) {
         await fs.writeFile(outputFilePath, data, 'utf8');
         print('info', `Function calls have been written to ${outputFilePath}`);
     } catch (err) {
-        print('error', `Error writing to file ${outputFilePath}`);
         print('error', err);
     }
 }
@@ -351,7 +344,6 @@ async function readFunctionDefinitionsFromFile(inputFilePath) {
         const data = await fs.readFile(inputFilePath, 'utf8');
         return JSON.parse(data);
     } catch (err) {
-        print('error', `Error reading function definitions from file ${inputFilePath}`);
         print('error', err);
         return {};
     }
@@ -367,7 +359,6 @@ async function readFunctionCallsFromFile(inputFilePath) {
         const data = await fs.readFile(inputFilePath, 'utf8');
         return JSON.parse(data);
     } catch (err) {
-        print('error', `Error reading function calls from file ${inputFilePath}`);
         print('error', err);
         return {};
     }

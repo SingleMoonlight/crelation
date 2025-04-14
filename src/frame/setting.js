@@ -2,7 +2,7 @@ const vscode = require('vscode');
 const path = require('path');
 const os = require('os');
 const fs = require('fs').promises;
-const { print } = require('../util/log');
+const { print } = require('../frame/channel');
 
 // global variable，数据保存路径以 globalState 为准，如果用户修改了路径，则在重启后更新和生效
 let dataSavePath = '';
