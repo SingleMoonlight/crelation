@@ -89,7 +89,7 @@ async function addProject() {
     try {
         const projectDataFile = path.join(getDataSavePath(), 'project.json');
         await fs.writeFile(projectDataFile, JSON.stringify(projects, null, 2), 'utf8');
-        print('info', 'Project added successfully.');
+        print('info', 'Project added successfully');
     } catch (err) {
         print('error', `Failed to write project.json: ${err.message}`);
     }
