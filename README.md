@@ -63,6 +63,6 @@ You can use `strings /usr/lib/x86_64-linux-gnu/libstdc++.so.6 | grep GLIBCXX` to
 | ID                     | Description                        | Default                 |
 | ---------------------- | ---------------------------------- | ----------------------- |
 | crelation.dataSavePath | The path to save the database file | `<username>/.crelation` |
-| crelation.showRelationsInSecondColumn | Whether to show relations in the second column editor | `off` |
+| crelation.relationsPosition | The position of the relations shown | `default` |
 | crelation.autoInitDatabase     | Whether to init the database automatically when opening a project     | `off`                   |
 | crelation.logLevel     | The log level of the extension     | `error`                   |

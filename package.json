@@ -67,12 +67,20 @@
         }
       },
       {
-        "title": "The position of relations shown",
+        "title": "Relations position",
         "properties": {
-          "crelation.showRelationsInSecondColumn": {
-            "type": "boolean",
-            "default": false,
-            "description": "Whether to show relations in the second column editor."
+          "crelation.relationsPosition": {
+            "type": "string",
+            "default": "default",
+            "description": "The position of the relations shown.",
+            "enum": [
+              "default",
+              "right"
+            ],
+            "enumDescriptions": [
+              "Show in the main editor",
+              "Show in the right editor"
+            ]
           }
         }
       },

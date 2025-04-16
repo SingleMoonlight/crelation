@@ -151,18 +151,18 @@ function getAutoInitDatabase()
 }
 
 /**
- * 获取是否在第二个列显示调用关系
- * @returns {boolean} 是否在第二个列显示调用关系
+ * 获取调用关系显示位置
+ * @returns {string} 调用关系显示位置
  */
-function getShowRelationInSecondColumn()
+function getRelationPosition()
 {
     const config = vscode.workspace.getConfiguration('crelation');
-    return config.get('showRelationsInSecondColumn');
+    return config.get('relationsPosition');
 }
 
 module.exports = {
 	initSetting,
     getDataSavePath,
     getAutoInitDatabase,
-    getShowRelationInSecondColumn
+    getRelationPosition
 };

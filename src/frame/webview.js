@@ -5,7 +5,7 @@ const parse = require('../core/parse');
 const { print } = require('../frame/channel');
 const { getProjectPath } = require('../core/project');
 const { showInfoMessage } = require('./message');
-const { getShowRelationInSecondColumn } = require('./setting');
+const { getRelationPosition } = require('./setting');
 
 /**
  * 创建调用关系的树形图
@@ -14,7 +14,15 @@ const { getShowRelationInSecondColumn } = require('./setting');
  * @param {object} treeData 查询的函数掉用关系数据
  */
 function createWebview(context, text, treeData) {
-    const column = getShowRelationInSecondColumn() ? vscode.ViewColumn.Two : vscode.ViewColumn.One;
+    const position = getRelationPosition();
+    let column = vscode.ViewColumn.One;
+
+    if (position === 'default') {
+        column = vscode.ViewColumn.One;
+    } else if (position === 'right') {
+        column = vscode.ViewColumn.Two;
+    }
+
     const panel = vscode.window.createWebviewPanel(
         'CRelations',
         text,
