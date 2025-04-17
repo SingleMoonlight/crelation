@@ -33,11 +33,11 @@ function createWebview(context, text, treeData) {
         currentPanel.title = text;
         currentPanel.webview.postMessage({ command: 'receiveTreeData', treeData });
         currentPanel.reveal(column);
-        print('info', 'Reusing existing panel');
+        print('info', 'Reusing existing panel.');
         return;
     }
 
-    print('info', 'Creating new panel');
+    print('info', 'Creating new panel.');
     const panel = vscode.window.createWebviewPanel(
         'CRelations',
         text,

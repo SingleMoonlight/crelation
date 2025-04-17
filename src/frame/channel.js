@@ -27,27 +27,37 @@ function destroyOutputChannel() {
 /**
  * 打印日志
  * @param {string} type 日志类型
- * @param {string|Error} message 日志内容
+ * @param {...any} messages 日志内容（支持多个参数）
  */
-function print(type, message) {
+function print(type, ...messages) {
     const logLevel = logLevels[type.toUpperCase()];
     const config = vscode.workspace.getConfiguration('crelation');
     const settingLogLevel = config.get('logLevel').toUpperCase();
 
-    if (logLevels[settingLogLevel] && logLevels[settingLogLevel].level < logLevel.level) {
+    if (logLevels[settingLogLevel]?.level < logLevel.level) {
         return;
     }
 
-    let errorMessage = message;
+    const processed = messages.map(msg => {
+        if (msg instanceof Error) {
+            return `${msg.name}: ${msg.message}\n${msg.stack}`;
+        }
+        if (typeof msg === 'object' && msg !== null) {
+            try {
+                return JSON.stringify(msg, null, 2);
+            } catch {
+                return '[Circular Object]';
+            }
+        }
+        return String(msg);
+    });
 
-    if (message instanceof Error) {
-        errorMessage = `${message.name}: ${message.message}\nStack: ${message.stack}`;
-    }
+    const finalMessage = processed.join(' ');
 
-    if (logLevel && logLevel.log) {
-        logLevel.log(errorMessage);
+    if (logLevel?.log) {
+        logLevel.log(finalMessage);
     } else {
-        outputChannel.info(errorMessage);
+        outputChannel.info(finalMessage);
     }
 }
 

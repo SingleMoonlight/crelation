@@ -13,7 +13,7 @@ function getProjectPath() {
     // 获取当前打开项目的完整目录
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (!workspaceFolders || workspaceFolders.length === 0) {
-        print('info', 'No project is currently open');
+        print('info', 'No project is currently open.');
         return;
     }
 
@@ -40,7 +40,7 @@ async function getProjects() {
         return JSON.parse(data);
     } catch (err) {
         if (err.code !== 'ENOENT') {
-            print('error', `Failed to read project.json: ${err.message}`);
+            print('error', 'Failed to read project.json.', err);
             return [];
         }
     }
@@ -63,7 +63,7 @@ async function addProject() {
 
     // 生成唯一的 uid
     const uid = generateShortUid();
-    print('info', `Generated UID: ${uid}`);
+    print('info', 'Generated UID: ', uid);
 
     // 读取现有的 project.json 文件内容
     let projects = await getProjects();
@@ -89,9 +89,9 @@ async function addProject() {
     try {
         const projectDataFile = path.join(getDataSavePath(), 'project.json');
         await fs.writeFile(projectDataFile, JSON.stringify(projects, null, 2), 'utf8');
-        print('info', 'Project added successfully');
+        print('info', 'Project added successfully.');
     } catch (err) {
-        print('error', `Failed to write project.json: ${err.message}`);
+        print('error', 'Failed to write project.json.', err);
     }
 
     // 创建该项目数据保存文件夹

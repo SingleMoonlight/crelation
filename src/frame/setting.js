@@ -22,7 +22,7 @@ async function performMigration(oldPath, newPath) {
         try {
             await fs.access(oldPath);
         } catch(error) {
-            print('warn', `Source path does't exit: ${oldPath} | ${error.message}`);
+            print('warn', 'Source path', oldPath,  'does not exit.', error);
             return;
         }
 
@@ -44,7 +44,7 @@ async function performMigration(oldPath, newPath) {
             try {
                 return await fs.readdir(dirPath, { withFileTypes: true });
             } catch (error) {
-                print('warn', `Skipping unreadable directory ${dirPath} | ${error.message}`);
+                print('warn', 'Skipping unreadable directory: ', dirPath);
                 return [];
             }
         };
@@ -66,7 +66,7 @@ async function performMigration(oldPath, newPath) {
                 await fs.copyFile(src, dest);
                 await fs.unlink(src);
             } catch (error) {
-                print('warn', `File migration failed, ${src} → ${dest} | ${error.message}`)
+                print('warn', 'File migration failed from ', src, 'to ', dest);
             }
         }
 
@@ -86,11 +86,11 @@ async function performMigration(oldPath, newPath) {
                 retryDelay: 500
             });
         } catch (error) {
-            print('warn', `Directory deletion failed, ${oldPath} | ${error.message}`);
+            print('warn', 'Directory deletion failed: ', oldPath);
         }
 
     } catch (error) {
-        print('error', `Migration failed: ${error.message}`);
+        print('error', 'Migration failed.');
         throw error;
     }
 }
@@ -117,8 +117,8 @@ function initSetting(context)
         // 如果路径与 globalState 不一致，则迁移数据
         const globalStateDataSavePath = context.globalState.get('dataSavePath');
 
-        print('debug', `The globalStateDataSavePath: ${globalStateDataSavePath}`);
-        print('debug', `The settingDataSavePath: ${settingDataSavePath}`);
+        print('debug', 'The globalStateDataSavePath: ', globalStateDataSavePath);
+        print('debug', 'The settingDataSavePath: ', settingDataSavePath);
 
         if (globalStateDataSavePath && globalStateDataSavePath !== settingDataSavePath) {
             performMigration(globalStateDataSavePath, settingDataSavePath);

@@ -3,6 +3,7 @@ const path = require('path');
 const Parser = require('tree-sitter');
 const CParser = require('tree-sitter-c');
 const { getProjectPath, getProjectDatabasePath } = require('./project');
+const { print } = require('../frame/channel');
 
 // 初始化 C 语言解析器
 const parser = new Parser();
@@ -38,9 +39,10 @@ async function traverseDirectory(dir, forceRescan = false) {
             // 加载上次扫描时间
             const timeData = await fs.readFile(path.join(dbPath, lastScanTimestampFile), 'utf-8');
             lastScanTime = JSON.parse(timeData).lastScanTime || 0;
-        } catch {
+        } catch(error) {
             // 文件不存在时强制全量扫描
             forceRescan = true;
+            print('error', 'Failed to read database files.', error);
         }
     }
 
@@ -182,15 +184,18 @@ async function traverseDirectory(dir, forceRescan = false) {
         }
     }
 
+    print('info', 'Starting function scan.');
     // 执行扫描
     await walk(dir);
 
+    print('info', 'Cleaning up deleted files.')
     // 清理已删除文件的数据
     if (!forceRescan) {
         cleanupDeletedFiles(functionDefinitions, allExistingFiles);
         cleanupDeletedFiles(functionCalls, allExistingFiles);
     }
 
+    print('info', 'Saving results.')
     // 保存结果
     await fs.writeFile(
         path.join(dbPath, functionDefinitionsFile),
@@ -215,10 +220,16 @@ async function traverseDirectory(dir, forceRescan = false) {
  */
 async function getFunctionDefinition(functionName) {
     const dbPath = await getProjectDatabasePath();
+    let result = [];
+
     try {
         const data = await fs.readFile(path.join(dbPath, functionDefinitionsFile), 'utf-8');
-        return JSON.parse(data)[functionName] || [];
-    } catch {
+        result = JSON.parse(data)[functionName] || [];
+
+        print('debug', 'Function definitions for: ', functionName, 'result: ', result)
+        return result;
+    } catch(error) {
+        print('error', 'Failed to read function definitions.', error);
         return []; // 文件不存在时返回空数组
     }
 }
@@ -230,19 +241,27 @@ async function getFunctionDefinition(functionName) {
  */
 async function getFunctionCalls(functionName) {
     const dbPath = await getProjectDatabasePath();
+    let result = {};
+
     try {
         const data = await fs.readFile(path.join(dbPath, functionCallsFile), 'utf-8');
         const allCalls = JSON.parse(data);
 
         // 添加外层函数名包装
-        return {
+        result = {
             [functionName]: allCalls[functionName] || { calledBy: [] }
         };
-    } catch {
+
+        print('debug', 'Function calls for: ', functionName, 'result: ', result)
+        return result;
+    } catch(error) {
+        print('error', 'Failed to read function calls.', error);
+
         // 异常时返回带函数名的空结构
-        return {
+        result = {
             [functionName]: { calledBy: [] }
         };
+        return result;
     }
 }
 
