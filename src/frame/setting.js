@@ -160,9 +160,20 @@ function getRelationPosition()
     return config.get('relationsPosition');
 }
 
+/**
+ * 获取调用关系面板模式
+ * @returns {string} 调用关系面板模式
+ */
+function getRelationPanelMode()
+{
+    const config = vscode.workspace.getConfiguration('crelation');
+    return config.get('relationsPanelMode');
+}
+
 module.exports = {
 	initSetting,
     getDataSavePath,
     getAutoInitDatabase,
-    getRelationPosition
+    getRelationPosition,
+    getRelationPanelMode
 };

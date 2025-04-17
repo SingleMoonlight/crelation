@@ -5,7 +5,10 @@ const parse = require('../core/parse');
 const { print } = require('../frame/channel');
 const { getProjectPath } = require('../core/project');
 const { showInfoMessage } = require('./message');
-const { getRelationPosition } = require('./setting');
+const { getRelationPosition, getRelationPanelMode } = require('./setting');
+
+// 当前Webview面板实例，在单标签页模式下有效
+let currentPanel = null;
 
 /**
  * 创建调用关系的树形图
@@ -15,6 +18,7 @@ const { getRelationPosition } = require('./setting');
  */
 function createWebview(context, text, treeData) {
     const position = getRelationPosition();
+    const panelMode = getRelationPanelMode();
     let column = vscode.ViewColumn.One;
 
     if (position === 'default') {
@@ -23,6 +27,17 @@ function createWebview(context, text, treeData) {
         column = vscode.ViewColumn.Two;
     }
 
+    // 复用现有面板
+    if (panelMode === 'single' && currentPanel) {
+        // 更新标题和数据
+        currentPanel.title = text;
+        currentPanel.webview.postMessage({ command: 'receiveTreeData', treeData });
+        currentPanel.reveal(column);
+        print('info', 'Reusing existing panel');
+        return;
+    }
+
+    print('info', 'Creating new panel');
     const panel = vscode.window.createWebviewPanel(
         'CRelations',
         text,
@@ -33,6 +48,14 @@ function createWebview(context, text, treeData) {
             retainContextWhenHidden: true
         }
     );
+
+    // 状态管理
+    currentPanel = panel;
+    panel.onDidDispose(() => {
+        if (currentPanel === panel) {
+            currentPanel = null;
+        }
+    }, null, context.subscriptions);
 
     let htmlContent = getWebviewContentWithConvertedPaths(panel, context, 'src/view/index.html');
     panel.webview.html = htmlContent;

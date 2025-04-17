@@ -13,7 +13,8 @@
     "vscode": "^1.60.0"
   },
   "categories": [
-    "Programming Languages", "Visualization"
+    "Programming Languages",
+    "Visualization"
   ],
   "activationEvents": [
     "onStartupFinished"
@@ -80,6 +81,24 @@
             "enumDescriptions": [
               "Show in the main editor",
               "Show in the right editor"
+            ]
+          }
+        }
+      },
+      {
+        "title": "Relations panel mode",
+        "properties": {
+          "crelation.relationsPanelMode": {
+            "type": "string",
+            "default": "multiple",
+            "description": "The mode of the relations panel.",
+            "enum": [
+              "multiple",
+              "single"
+            ],
+            "enumDescriptions": [
+              "Open a new tab for each relation",
+              "Only show relation in one tab"
             ]
           }
         }
