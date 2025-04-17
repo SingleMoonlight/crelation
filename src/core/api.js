@@ -21,7 +21,7 @@ async function initDatabase(context) {
     // 记录开始时间
     const startTime = Date.now();
 
-    await parse.traverseDirectory(projectPath, true, false);
+    await parse.traverseDirectory(projectPath, true);
     // 计算耗时
     const endTime = Date.now();
     const duration = endTime - startTime;
@@ -52,7 +52,7 @@ async function updateDatabase(context) {
     // 记录开始时间
     const startTime = Date.now();
 
-    await parse.traverseDirectory(projectPath, false, false);
+    await parse.traverseDirectory(projectPath, false);
     // 计算耗时
     const endTime = Date.now();
     const duration = endTime - startTime;
@@ -83,7 +83,7 @@ async function forceUpdateDatabase(context) {
     // 记录开始时间
     const startTime = Date.now();
 
-    await parse.traverseDirectory(projectPath, true, false);
+    await parse.traverseDirectory(projectPath, true);
     // 计算耗时
     const endTime = Date.now();
     const duration = endTime - startTime;
