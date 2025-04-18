@@ -2,8 +2,12 @@ const vscode = require('vscode');
 const project = require('./project');
 const parse = require('./parse');
 const statusbar = require('../frame/statusbar');
+const { print } = require('../frame/channel');
 const { createWebview } = require('../frame/webview');
 const { showInfoMessage } = require('../frame/message');
+const { getAutoInitDatabase, getAutoUpdateInterval } = require('../frame/setting');
+
+let autoUpdateTimer = null;
 
 /**
  * 初始化项目数据库
@@ -100,6 +104,47 @@ async function forceUpdateDatabase(context) {
 }
 
 /**
+ * 自动初始化项目数据库
+ * @param {vscode.ExtensionContext} context
+ */
+async function autoInitDatabase(context) {
+    if (getAutoInitDatabase()) {
+        print('debug', 'Auto init database.');
+        await initDatabase(context);
+    }
+}
+
+/**
+ * 自动更新项目数据库
+ * @param {vscode.ExtensionContext} context
+ */
+async function autoUpdateDatabase(context) {
+    const interval = getAutoUpdateInterval();
+    const projectPath = project.getProjectPath();
+
+    if (autoUpdateTimer) {
+        clearInterval(autoUpdateTimer);
+    }
+
+    if (interval > 0) {
+        autoUpdateTimer = setInterval(async () => {
+            print('debug', 'Auto update database.');
+            statusbar.showStatusbarItem();
+            statusbar.setStatusbarText('Scanning...', true);
+
+            await parse.traverseDirectory(projectPath, false);
+
+            statusbar.hideStatusbarItem();
+        }, interval * 60 * 1000); // 转换为毫秒
+
+        // 注册定时器到订阅列表
+        context.subscriptions.push({
+            dispose: () => clearInterval(autoUpdateTimer)
+        });
+    }
+}
+
+/**
  * 显示函数关系图
  * @param {vscode.ExtensionContext} context
  */
@@ -135,5 +180,7 @@ module.exports = {
     initDatabase,
     updateDatabase,
     forceUpdateDatabase,
+    autoInitDatabase,
+    autoUpdateDatabase,
     showRelations
 }

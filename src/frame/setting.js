@@ -170,10 +170,21 @@ function getRelationPanelMode()
     return config.get('relationsPanelMode');
 }
 
+/**
+ * 获取自动更新间隔
+ * @returns {number} 自动更新间隔
+ */
+function getAutoUpdateInterval()
+{
+    const config = vscode.workspace.getConfiguration('crelation');
+    return config.get('autoUpdateInterval');
+}
+
 module.exports = {
 	initSetting,
     getDataSavePath,
     getAutoInitDatabase,
     getRelationPosition,
-    getRelationPanelMode
+    getRelationPanelMode,
+    getAutoUpdateInterval
 };

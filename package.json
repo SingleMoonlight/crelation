@@ -49,28 +49,33 @@
     },
     "configuration": [
       {
-        "title": "Data Save Path",
+        "title": "Database management",
         "properties": {
           "crelation.dataSavePath": {
+            "order": 0,
             "type": "string",
             "markdownDescription": "The path to save the database file. If changed, please **REBOOT** the VS Code to take effect."
-          }
-        }
-      },
-      {
-        "title": "Auto init database",
-        "properties": {
+          },
           "crelation.autoInitDatabase": {
+            "order": 1,
             "type": "boolean",
             "default": false,
             "description": "Whether to init the database automatically when opening a project."
+          },
+          "crelation.autoUpdateInterval": {
+            "order": 2,
+            "type": "number",
+            "default": 0,
+            "minimum": 0,
+            "markdownDescription": "The interval to update the database automatically when opening a project. The unit is minutes. Default is 0, which means no auto update. Changed value will take effect after **REBOOT** the VS Code."
           }
         }
       },
       {
-        "title": "Relations position",
+        "title": "Webview settings",
         "properties": {
           "crelation.relationsPosition": {
+            "order": 0,
             "type": "string",
             "default": "default",
             "description": "The position of the relations shown.",
@@ -82,13 +87,9 @@
               "Show in the main editor",
               "Show in the right editor"
             ]
-          }
-        }
-      },
-      {
-        "title": "Relations panel mode",
-        "properties": {
+          },
           "crelation.relationsPanelMode": {
+            "order": 1,
             "type": "string",
             "default": "multiple",
             "description": "The mode of the relations panel.",
@@ -104,9 +105,10 @@
         }
       },
       {
-        "title": "Log Level",
+        "title": "Others",
         "properties": {
           "crelation.logLevel": {
+            "order": 0,
             "type": "string",
             "default": "error",
             "description": "The log level of the extension.",
