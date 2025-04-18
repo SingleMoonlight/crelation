@@ -1,5 +1,14 @@
 # Change Log
 
+## 1.0.9
+- feat: add setting that set the mode of the relations panel
+- feat: add setting that set the interval to update the database automatically
+- feat: add setting that set the mode of the relations panel
+- feat: support print log to the output panel
+- refactor: optimize the logic of the scan and improve the speed of the scan
+- chore: optimize the layout and description of the settings
+- docs: update readme
+
 ## 1.0.8
 - fix: only show relations when editor has selection
 - docs: update readme, add custom shortcut key description

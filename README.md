@@ -35,7 +35,7 @@ If you want show relations by a shortcut key, you can add the following code to 
 ## Issues
 If you have any questions, please contact me at [GitHub](https://github.com/SingleMoonlight/crelation).
 
-Before asking questions, please open the VS Code output panel and check the log. It's better if you can open `Help` -> `Toggle Developer Tools` to see if there are any errors. It will help me to solve your problem.
+Before asking questions, please open the VS Code output panel and check the log of `C Relation`. It's better if you can open `Help` -> `Toggle Developer Tools` to see if there are any errors. It will help me to solve your problem.
 
 ## Q&A
 1.command 'crelation.init' not found
@@ -43,6 +43,24 @@ Before asking questions, please open the VS Code output panel and check the log.
 If you encounter this problem, it most be because you uses the extension in some Linux system which is not supported GLIBCXX_3.4.29. 
 
 You can use `strings /usr/lib/x86_64-linux-gnu/libstdc++.so.6 | grep GLIBCXX` to check the version of GLIBCXX. If the version is lower than 3.4.29, you can try to install a newer version of GLIBCXX. There is no a good solution for this problem at present.
+
+2.Incorrect parsing on macros nested with logical expressions
+For example:
+```c
+if (
+#ifdef TEST_MACRO
+    !func() &&
+#endif
+    boolean_expression)
+{
+    // do something
+}
+```
+
+This is a bug of tree-sitter-c. I have submitted a issue to the repository of tree-sitter-c. However, I don't know when it will be fixed.
+
+This bug has a small probability of affecting the parsing results, manifested as the caller of a function being displayed as global, but it does not affect the jump function.
+
 
 ## Features
 
@@ -63,6 +81,8 @@ You can use `strings /usr/lib/x86_64-linux-gnu/libstdc++.so.6 | grep GLIBCXX` to
 | ID                     | Description                        | Default                 |
 | ---------------------- | ---------------------------------- | ----------------------- |
 | crelation.dataSavePath | The path to save the database file | `<username>/.crelation` |
+| crelation.autoInitDatabase | Whether to init the database automatically when opening a project | `off` |
+| crelation.autoUpdateInterval | The interval to update the database automatically when opening a project. The unit is minutes. Default is 0, which means no auto update. Changed value will take effect after **REBOOT** the VS Code. | 0 |
 | crelation.relationsPosition | The position of the relations shown | `default` |
-| crelation.autoInitDatabase     | Whether to init the database automatically when opening a project     | `off`                   |
+| crelation.relationsPanelMode | The mode of the relations panel.                             | `multiple`              |
 | crelation.logLevel     | The log level of the extension     | `error`                   |
