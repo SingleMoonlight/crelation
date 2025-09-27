@@ -76,47 +76,62 @@ async function traverseDirectory(dir, forceRescan = false) {
         const tree = parser.parse(code);
         const functionStack = [];
 
-        function traverse(node) {
-            // 处理函数定义
-            if (node.type === 'function_definition') {
-                // 查找函数名标识符
-                const declarator = node.childForFieldName('declarator');
-                const functionName = findFunctionName(declarator);
-
-                if (functionName) {
-                    // 记录函数定义
-                    (functionDefinitions[functionName] ||= []).push({
-                        filePath: relativePath,
-                        lineNumber: node.startPosition.row + 1
-                    });
-
-                    // 压入上下文栈
-                    functionStack.push(functionName);
+        // 将递归遍历改为迭代实现，避免栈溢出风险
+        function traverse(rootNode) {
+            const stack = [rootNode];
+            
+            while (stack.length > 0) {
+                const node = stack.pop();
+                
+                if (node === 'EXIT_FUNCTION') {
+                    // 弹出上下文栈
+                    if (functionStack.length > 0) {
+                        functionStack.pop();
+                    }
+                    continue;
                 }
-            }
 
-            // 处理函数调用
-            if (node.type === 'call_expression') {
-                const functionNode = node.childForFieldName('function');
-                if (functionNode?.type === 'identifier') {
-                    const calleeName = functionNode.text;
-                    const callerName = functionStack[functionStack.length - 1] || 'global';
+                // 处理函数定义
+                if (node.type === 'function_definition') {
+                    // 查找函数名标识符
+                    const declarator = node.childForFieldName('declarator');
+                    const functionName = findFunctionName(declarator);
 
-                    // 记录调用关系
-                    (functionCalls[calleeName] ||= { calledBy: [] }).calledBy.push({
-                        caller: callerName,
-                        filePath: relativePath,
-                        lineNumber: node.startPosition.row + 1
-                    });
+                    if (functionName) {
+                        // 记录函数定义
+                        (functionDefinitions[functionName] ||= []).push({
+                            filePath: relativePath,
+                            lineNumber: node.startPosition.row + 1
+                        });
+
+                        // 压入上下文栈
+                        functionStack.push(functionName);
+                        
+                        // 在函数体处理完后需要弹出上下文栈
+                        stack.push('EXIT_FUNCTION');
+                    }
                 }
-            }
 
-            // 递归处理子节点
-            node.children.forEach(traverse);
+                // 处理函数调用
+                if (node.type === 'call_expression') {
+                    const functionNode = node.childForFieldName('function');
+                    if (functionNode?.type === 'identifier') {
+                        const calleeName = functionNode.text;
+                        const callerName = functionStack[functionStack.length - 1] || 'global';
 
-            // 弹出上下文栈
-            if (node.type === 'function_definition' && functionStack.length > 0) {
-                functionStack.pop();
+                        // 记录调用关系
+                        (functionCalls[calleeName] ||= { calledBy: [] }).calledBy.push({
+                            caller: callerName,
+                            filePath: relativePath,
+                            lineNumber: node.startPosition.row + 1
+                        });
+                    }
+                }
+
+                // 将子节点压入栈（逆序，以保证正确的遍历顺序）
+                for (let i = node.children.length - 1; i >= 0; i--) {
+                    stack.push(node.children[i]);
+                }
             }
         }
 
@@ -165,21 +180,46 @@ async function traverseDirectory(dir, forceRescan = false) {
 
     // 存储所有现存文件路径
     const allExistingFiles = new Set();
-    // 目录遍历函数
-    async function walk(currentDir) {
-        const entries = await fs.readdir(currentDir, { withFileTypes: true });
-        for (const entry of entries) {
-            const fullPath = path.join(currentDir, entry.name);
-            if (entry.isDirectory()) {
-                await walk(fullPath);
-            } else if (['.c', '.h'].includes(path.extname(fullPath))) {
-                const relativePath = path.relative(await getProjectPath(), fullPath);
-                allExistingFiles.add(relativePath); // 记录所有现存文件
-
-                const stats = await fs.stat(fullPath);
-                if (forceRescan || stats.mtimeMs > lastScanTime) {
-                    await processFile(fullPath);
+    
+    // 使用迭代方式遍历目录，避免递归深度问题和循环软链接问题
+    async function walk(startDir) {
+        const dirStack = [startDir];
+        const visitedPaths = new Set();
+        
+        while (dirStack.length > 0) {
+            const currentDir = dirStack.pop();
+            
+            try {
+                // 解析真实路径，处理软链接
+                const realPath = await fs.realpath(currentDir);
+                
+                // 如果已经访问过，跳过
+                if (visitedPaths.has(realPath)) {
+                    continue;
                 }
+                
+                visitedPaths.add(realPath);
+                
+                const entries = await fs.readdir(currentDir, { withFileTypes: true });
+                for (const entry of entries) {
+                    const fullPath = path.join(currentDir, entry.name);
+                    
+                    if (entry.isDirectory()) {
+                        // 将子目录加入栈
+                        dirStack.push(fullPath);
+                    } else if (['.c', '.h'].includes(path.extname(fullPath))) {
+                        const relativePath = path.relative(await getProjectPath(), fullPath);
+                        allExistingFiles.add(relativePath); // 记录所有现存文件
+
+                        const stats = await fs.stat(fullPath);
+                        if (forceRescan || stats.mtimeMs > lastScanTime) {
+                            await processFile(fullPath);
+                        }
+                    }
+                }
+            } catch (error) {
+                print('warning', `Error processing directory ${currentDir}:`, error);
+                // 跳过有问题的目录，继续处理其他目录
             }
         }
     }
