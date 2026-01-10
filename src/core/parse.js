@@ -1,26 +1,21 @@
 const fs = require('fs').promises;
 const path = require('path');
-const Parser = require('tree-sitter');
-const CParser = require('tree-sitter-c');
-const { getProjectPath, getProjectDatabasePath } = require('./project');
+const { getProjectPath } = require('./project');
 const { print } = require('../frame/channel');
-
-// 初始化 C 语言解析器
-const parser = new Parser();
-parser.setLanguage(CParser);
-
-// 定义输出文件名
-const functionDefinitionsFile = 'function_definitions.json';
-const functionCallsFile = 'function_calls.json';
-const lastScanTimestampFile = 'last_scan_timestamp.json';
+const { getDatabaseManager } = require('./database');
+const { getParserManager } = require('./parser');
+const { ErrorHandler, ErrorCodes } = require('./error');
 
 /**
  * 递归遍历目录并解析代码文件
  * @param {string} dir 要扫描的目录路径
  * @param {boolean} forceRescan 是否强制重新扫描
+ * @param {Function} progressCallback 进度回调函数 (current, total, filename)
  */
-async function traverseDirectory(dir, forceRescan = false) {
-    const dbPath = await getProjectDatabasePath();
+async function traverseDirectory(dir, forceRescan = false, progressCallback = null) {
+    const dbManager = getDatabaseManager();
+    const parserManager = getParserManager();
+    
     let functionDefinitions = {};
     let functionCalls = {};
     let lastScanTime = 0;
@@ -28,21 +23,13 @@ async function traverseDirectory(dir, forceRescan = false) {
     // 加载已有数据和上次扫描时间戳
     if (!forceRescan) {
         try {
-            // 加载函数定义数据
-            const defData = await fs.readFile(path.join(dbPath, functionDefinitionsFile), 'utf-8');
-            functionDefinitions = JSON.parse(defData);
-
-            // 加载调用关系数据
-            const callData = await fs.readFile(path.join(dbPath, functionCallsFile), 'utf-8');
-            functionCalls = JSON.parse(callData);
-
-            // 加载上次扫描时间
-            const timeData = await fs.readFile(path.join(dbPath, lastScanTimestampFile), 'utf-8');
-            lastScanTime = JSON.parse(timeData).lastScanTime || 0;
+            functionDefinitions = await dbManager.getAllDefinitions();
+            functionCalls = await dbManager.getAllCalls();
+            lastScanTime = await dbManager.getLastScanTime();
         } catch(error) {
             // 文件不存在时强制全量扫描
             forceRescan = true;
-            print('error', 'Failed to read database files.', error);
+            print('error', 'Failed to load existing database, performing full scan.', error);
         }
     }
 
@@ -54,7 +41,7 @@ async function traverseDirectory(dir, forceRescan = false) {
         const relativePath = path.relative(await getProjectPath(), filePath);
         processedFiles.add(relativePath);
 
-        // 清除旧数据
+        // 清除该文件的旧数据
         for (const funcName in functionDefinitions) {
             functionDefinitions[funcName] = functionDefinitions[funcName]
                 .filter(def => def.filePath !== relativePath);
@@ -71,88 +58,29 @@ async function traverseDirectory(dir, forceRescan = false) {
             }
         }
 
-        // 解析新数据
-        const code = await fs.readFile(filePath, 'utf-8');
-        const tree = parser.parse(code);
-        const functionStack = [];
-
-        // 将递归遍历改为迭代实现，避免栈溢出风险
-        function traverse(rootNode) {
-            const stack = [rootNode];
+        // 使用新的解析器解析文件
+        try {
+            const parseResult = await parserManager.parseFile(filePath);
             
-            while (stack.length > 0) {
-                const node = stack.pop();
-                
-                if (node === 'EXIT_FUNCTION') {
-                    // 弹出上下文栈
-                    if (functionStack.length > 0) {
-                        functionStack.pop();
-                    }
-                    continue;
-                }
-
-                // 处理函数定义
-                if (node.type === 'function_definition') {
-                    // 查找函数名标识符
-                    const declarator = node.childForFieldName('declarator');
-                    const functionName = findFunctionName(declarator);
-
-                    if (functionName) {
-                        // 记录函数定义
-                        (functionDefinitions[functionName] ||= []).push({
-                            filePath: relativePath,
-                            lineNumber: node.startPosition.row + 1
-                        });
-
-                        // 压入上下文栈
-                        functionStack.push(functionName);
-                        
-                        // 在函数体处理完后需要弹出上下文栈
-                        stack.push('EXIT_FUNCTION');
-                    }
-                }
-
-                // 处理函数调用
-                if (node.type === 'call_expression') {
-                    const functionNode = node.childForFieldName('function');
-                    if (functionNode?.type === 'identifier') {
-                        const calleeName = functionNode.text;
-                        const callerName = functionStack[functionStack.length - 1] || 'global';
-
-                        // 记录调用关系
-                        (functionCalls[calleeName] ||= { calledBy: [] }).calledBy.push({
-                            caller: callerName,
-                            filePath: relativePath,
-                            lineNumber: node.startPosition.row + 1
-                        });
-                    }
-                }
-
-                // 将子节点压入栈（逆序，以保证正确的遍历顺序）
-                for (let i = node.children.length - 1; i >= 0; i--) {
-                    stack.push(node.children[i]);
-                }
+            // 记录函数定义
+            for (const funcDef of parseResult.functionDefinitions) {
+                (functionDefinitions[funcDef.name] ||= []).push({
+                    filePath: relativePath,
+                    lineNumber: funcDef.lineNumber
+                });
             }
+
+            // 记录调用关系
+            for (const funcCall of parseResult.functionCalls) {
+                (functionCalls[funcCall.callee] ||= { calledBy: [] }).calledBy.push({
+                    caller: funcCall.caller,
+                    filePath: relativePath,
+                    lineNumber: funcCall.lineNumber
+                });
+            }
+        } catch (error) {
+            print('warning', `Failed to parse file: ${filePath}`, error);
         }
-
-        traverse(tree.rootNode);
-    }
-
-    // 辅助函数：查找函数名
-    function findFunctionName(node) {
-        if (!node) return null;
-
-        // 深度优先搜索identifier
-        if (node.type === 'identifier') {
-            return node.text;
-        }
-
-        for (const child of node.children) {
-            const result = findFunctionName(child);
-            if (result) return result;
-        }
-
-        return null;
     }
 
     // 辅助函数：清理已删除文件的数据
@@ -180,9 +108,10 @@ async function traverseDirectory(dir, forceRescan = false) {
 
     // 存储所有现存文件路径
     const allExistingFiles = new Set();
+    const filesToProcess = [];
     
-    // 使用迭代方式遍历目录，避免递归深度问题和循环软链接问题
-    async function walk(startDir) {
+    // 第一遍扫描：收集所有文件
+    async function collectFiles(startDir) {
         const dirStack = [startDir];
         const visitedPaths = new Set();
         
@@ -190,10 +119,8 @@ async function traverseDirectory(dir, forceRescan = false) {
             const currentDir = dirStack.pop();
             
             try {
-                // 解析真实路径，处理软链接
                 const realPath = await fs.realpath(currentDir);
                 
-                // 如果已经访问过，跳过
                 if (visitedPaths.has(realPath)) {
                     continue;
                 }
@@ -205,52 +132,56 @@ async function traverseDirectory(dir, forceRescan = false) {
                     const fullPath = path.join(currentDir, entry.name);
                     
                     if (entry.isDirectory()) {
-                        // 将子目录加入栈
                         dirStack.push(fullPath);
-                    } else if (['.c', '.h'].includes(path.extname(fullPath))) {
+                    } else if (parserManager.isSupported(fullPath)) {
                         const relativePath = path.relative(await getProjectPath(), fullPath);
-                        allExistingFiles.add(relativePath); // 记录所有现存文件
+                        allExistingFiles.add(relativePath);
 
                         const stats = await fs.stat(fullPath);
                         if (forceRescan || stats.mtimeMs > lastScanTime) {
-                            await processFile(fullPath);
+                            filesToProcess.push(fullPath);
                         }
                     }
                 }
             } catch (error) {
                 print('warning', `Error processing directory ${currentDir}:`, error);
-                // 跳过有问题的目录，继续处理其他目录
             }
         }
     }
 
     print('info', 'Starting function scan.');
-    // 执行扫描
-    await walk(dir);
+    // 第一遍：收集文件
+    await collectFiles(dir);
+    
+    const totalFiles = filesToProcess.length;
+    print('info', `Found ${totalFiles} files to process.`);
+    
+    // 第二遍：处理文件并报告进度
+    for (let i = 0; i < filesToProcess.length; i++) {
+        await processFile(filesToProcess[i]);
+        
+        // 调用进度回调
+        if (progressCallback) {
+            const fileName = path.basename(filesToProcess[i]);
+            progressCallback(i + 1, totalFiles, fileName);
+        }
+        
+        // 每处理10个文件，让出控制权，避免阻塞UI线程
+        if (i % 10 === 0) {
+            await new Promise(resolve => setImmediate(resolve));
+        }
+    }
 
-    print('info', 'Cleaning up deleted files.')
+    print('info', 'Cleaning up deleted files.');
     // 清理已删除文件的数据
     if (!forceRescan) {
         cleanupDeletedFiles(functionDefinitions, allExistingFiles);
         cleanupDeletedFiles(functionCalls, allExistingFiles);
     }
 
-    print('info', 'Saving results.')
-    // 保存结果
-    await fs.writeFile(
-        path.join(dbPath, functionDefinitionsFile),
-        JSON.stringify(functionDefinitions, null, 2)
-    );
-    await fs.writeFile(
-        path.join(dbPath, functionCallsFile),
-        JSON.stringify(functionCalls, null, 2)
-    );
-
-    // 更新时间戳
-    await fs.writeFile(
-        path.join(dbPath, lastScanTimestampFile),
-        JSON.stringify({ lastScanTime: Date.now() }, null, 2)
-    );
+    print('info', 'Saving results.');
+    // 使用DatabaseManager保存结果
+    await dbManager.saveAll(functionDefinitions, functionCalls);
 }
 
 /**
@@ -259,19 +190,8 @@ async function traverseDirectory(dir, forceRescan = false) {
  * @returns {Promise<Array>} 函数定义位置数组
  */
 async function getFunctionDefinition(functionName) {
-    const dbPath = await getProjectDatabasePath();
-    let result = [];
-
-    try {
-        const data = await fs.readFile(path.join(dbPath, functionDefinitionsFile), 'utf-8');
-        result = JSON.parse(data)[functionName] || [];
-
-        print('debug', 'Function definitions for: ', functionName, 'result: ', result)
-        return result;
-    } catch(error) {
-        print('error', 'Failed to read function definitions.', error);
-        return []; // 文件不存在时返回空数组
-    }
+    const dbManager = getDatabaseManager();
+    return await dbManager.getFunctionDefinitions(functionName);
 }
 
 /**
@@ -280,29 +200,8 @@ async function getFunctionDefinition(functionName) {
  * @returns {Promise<Object>} 调用关系对象
  */
 async function getFunctionCalls(functionName) {
-    const dbPath = await getProjectDatabasePath();
-    let result = {};
-
-    try {
-        const data = await fs.readFile(path.join(dbPath, functionCallsFile), 'utf-8');
-        const allCalls = JSON.parse(data);
-
-        // 添加外层函数名包装
-        result = {
-            [functionName]: allCalls[functionName] || { calledBy: [] }
-        };
-
-        print('debug', 'Function calls for: ', functionName, 'result: ', result)
-        return result;
-    } catch(error) {
-        print('error', 'Failed to read function calls.', error);
-
-        // 异常时返回带函数名的空结构
-        result = {
-            [functionName]: { calledBy: [] }
-        };
-        return result;
-    }
+    const dbManager = getDatabaseManager();
+    return await dbManager.getFunctionCalls(functionName);
 }
 
 module.exports = {

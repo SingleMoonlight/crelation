@@ -3,6 +3,7 @@ const path = require('path');
 const os = require('os');
 const fs = require('fs').promises;
 const { print } = require('../frame/channel');
+const { showWarningMessage } = require('../frame/message');
 
 // global variable，数据保存路径以 globalState 为准，如果用户修改了路径，则在重启后更新和生效
 let dataSavePath = '';
@@ -114,6 +115,17 @@ function initSetting(context)
         context.globalState.update('dataSavePath', defaultDataSavePath);
     } else {
         const settingDataSavePath = config.get(dataSavePathKey);
+        
+        // 验证路径
+        if (!validateDataSavePath(settingDataSavePath)) {
+            showWarningMessage(`Invalid data save path: ${settingDataSavePath}. Using default path.`);
+            config.update(dataSavePathKey, defaultDataSavePath, true);
+            fs.mkdir(defaultDataSavePath, { recursive: true });
+            context.globalState.update('dataSavePath', defaultDataSavePath);
+            dataSavePath = defaultDataSavePath;
+            return;
+        }
+        
         // 如果路径与 globalState 不一致，则迁移数据
         const globalStateDataSavePath = context.globalState.get('dataSavePath');
 
@@ -128,6 +140,9 @@ function initSetting(context)
     }
 
     dataSavePath = context.globalState.get('dataSavePath');
+    
+    // 验证其他配置
+    validateOtherSettings();
 }
 
 /**
@@ -180,11 +195,55 @@ function getAutoUpdateInterval()
     return config.get('autoUpdateInterval');
 }
 
+/**
+ * 验证数据保存路径
+ * @param {string} dataPath 路径
+ * @returns {boolean}
+ */
+function validateDataSavePath(dataPath) {
+    if (!dataPath || typeof dataPath !== 'string') {
+        return false;
+    }
+    
+    // 检查是否为绝对路径
+    if (!path.isAbsolute(dataPath)) {
+        print('warning', `Data save path must be absolute: ${dataPath}`);
+        return false;
+    }
+    
+    return true;
+}
+
+/**
+ * 验证其他配置
+ */
+function validateOtherSettings() {
+    const config = vscode.workspace.getConfiguration('crelation');
+    
+    // 验证自动更新间隔
+    const interval = config.get('autoUpdateInterval');
+    if (typeof interval !== 'number' || interval < 0) {
+        print('warning', `Invalid autoUpdateInterval: ${interval}, using default 0`);
+        config.update('autoUpdateInterval', 0, true);
+    }
+    
+    // 验证日志级别
+    const logLevel = config.get('logLevel');
+    const validLevels = ['debug', 'info', 'warn', 'error', 'off'];
+    if (!validLevels.includes(logLevel)) {
+        print('warning', `Invalid logLevel: ${logLevel}, using default 'error'`);
+        config.update('logLevel', 'error', true);
+    }
+    
+    print('info', 'Configuration validation complete.');
+}
+
 module.exports = {
 	initSetting,
     getDataSavePath,
     getAutoInitDatabase,
     getRelationPosition,
     getRelationPanelMode,
-    getAutoUpdateInterval
+    getAutoUpdateInterval,
+    validateDataSavePath
 };

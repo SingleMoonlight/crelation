@@ -4,8 +4,9 @@ const path = require('path');
 const parse = require('../core/parse');
 const { print } = require('../frame/channel');
 const { getProjectPath } = require('../core/project');
-const { showInfoMessage } = require('./message');
+const { showInfoMessage, showErrorMessage } = require('./message');
 const { getRelationPosition, getRelationPanelMode } = require('./setting');
+const { ErrorHandler } = require('../core/error');
 
 // 当前Webview面板实例，在单标签页模式下有效
 let currentPanel = null;
@@ -64,40 +65,42 @@ function createWebview(context, text, treeData) {
     // 设置消息监听器
     panel.webview.onDidReceiveMessage(
         message => {
-            switch (message.command) {
-                case 'fetchChildNodes':
-                    const nodeName = message.nodeName;
-                    parse.getFunctionCalls(nodeName).then(childNodes => {
+            ErrorHandler.executeWithErrorHandling(async () => {
+                switch (message.command) {
+                    case 'fetchChildNodes':
+                        const nodeName = message.nodeName;
+                        const childNodes = await parse.getFunctionCalls(nodeName);
+                        
                         if (childNodes[nodeName].calledBy.length === 0) {
-                            showInfoMessage('No relations found for function "' + nodeName + '"');
+                            showInfoMessage(`No relations found for function "${nodeName}"`);
                             return;
                         }
                         // 发送消息回webview
                         panel.webview.postMessage({ command: 'receiveChildNodes', childNodes });
-                    }).catch((err) => {
-                        print('error', err);
-                    });
-                    return;
-                case 'sendFunctionCallerInfo':
-                    const functionCallerInfo = message.functionCallerInfo;
-                    const filePath = path.join(getProjectPath(), functionCallerInfo.filePath);
-                    const lineNumber = functionCallerInfo.lineNumber;
+                        print('debug', `Fetched child nodes for: ${nodeName}`);
+                        return;
+                        
+                    case 'sendFunctionCallerInfo':
+                        const functionCallerInfo = message.functionCallerInfo;
+                        const filePath = path.join(getProjectPath(), functionCallerInfo.filePath);
+                        const lineNumber = functionCallerInfo.lineNumber;
 
-                    vscode.workspace.openTextDocument(filePath).then(doc => {
-                        vscode.window.showTextDocument(doc, {
+                        const doc = await vscode.workspace.openTextDocument(filePath);
+                        const editor = await vscode.window.showTextDocument(doc, {
                             viewColumn: vscode.ViewColumn.One, // 强制在第一个视图列打开
                             selection: new vscode.Range(
-                                new vscode.Position(lineNumber, 0),
-                                new vscode.Position(lineNumber, 0)
+                                new vscode.Position(lineNumber - 1, 0),
+                                new vscode.Position(lineNumber - 1, 0)
                             )
-                        }).then(editor => {
-                            editor.revealRange(editor.selection);
                         });
-                    });
-                    return;
-                default:
-                    return;
-            }
+                        editor.revealRange(editor.selection, vscode.TextEditorRevealType.InCenter);
+                        print('info', `Jumped to ${filePath}:${lineNumber}`);
+                        return;
+                        
+                    default:
+                        return;
+                }
+            }, 'webviewMessageHandler', { showToUser: true });
         },
         undefined,
         context.subscriptions

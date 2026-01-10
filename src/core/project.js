@@ -26,6 +26,9 @@ function getProjectPath() {
  */
 function getProjectName() {
     const projectPath = getProjectPath();
+    if (!projectPath) {
+        return null;
+    }
     return path.basename(projectPath);
 }
 
@@ -35,14 +38,20 @@ function getProjectName() {
  */
 async function getProjects() {
     try {
-        const projectDataFile = path.join(getDataSavePath(), 'project.json');
+        const savePath = getDataSavePath();
+        if (!savePath) {
+            print('warning', 'Data save path is not configured.');
+            return [];
+        }
+        
+        const projectDataFile = path.join(savePath, 'project.json');
         const data = await fs.readFile(projectDataFile, 'utf8');
         return JSON.parse(data);
     } catch (err) {
         if (err.code !== 'ENOENT') {
             print('error', 'Failed to read project.json.', err);
-            return [];
         }
+        return [];
     }
 }
 
@@ -59,7 +68,14 @@ function generateShortUid(length = 8) {
  */
 async function addProject() {
     const projectPath = getProjectPath();
+    if (!projectPath) {
+        throw new Error('No project is currently open');
+    }
+    
     const projectName = getProjectName();
+    if (!projectName) {
+        throw new Error('Failed to get project name');
+    }
 
     // 生成唯一的 uid
     const uid = generateShortUid();
@@ -87,15 +103,24 @@ async function addProject() {
 
     // 写入更新后的 project.json 文件
     try {
-        const projectDataFile = path.join(getDataSavePath(), 'project.json');
+        const savePath = getDataSavePath();
+        if (!savePath) {
+            throw new Error('Data save path is not configured');
+        }
+        
+        const projectDataFile = path.join(savePath, 'project.json');
         await fs.writeFile(projectDataFile, JSON.stringify(projects, null, 2), 'utf8');
         print('info', 'Project added successfully.');
     } catch (err) {
         print('error', 'Failed to write project.json.', err);
+        throw err;
     }
 
     // 创建该项目数据保存文件夹
-    await fs.mkdir(path.join(getDataSavePath(), uid + '-' + projectName), { recursive: true });
+    const savePath = getDataSavePath();
+    if (savePath) {
+        await fs.mkdir(path.join(savePath, uid + '-' + projectName), { recursive: true });
+    }
 }
 
 /**
@@ -103,6 +128,10 @@ async function addProject() {
  */
 async function getProjectDatabasePath() {
     const projectPath = getProjectPath();
+    if (!projectPath) {
+        throw new Error('No project is currently open');
+    }
+    
     let projects = await getProjects();
 
     if (!Array.isArray(projects)) {
@@ -111,9 +140,15 @@ async function getProjectDatabasePath() {
 
     for (const project of projects) {
         if (project.path === projectPath) {
-            return path.join(getDataSavePath(), project.uid + '-' + project.name);
+            const savePath = getDataSavePath();
+            if (!savePath) {
+                throw new Error('Data save path is not configured');
+            }
+            return path.join(savePath, project.uid + '-' + project.name);
         }
     }
+    
+    throw new Error('Project not found in database. Please run "Init database" first.');
 }
 
 module.exports = {

@@ -4,17 +4,17 @@ C Language Call Chain Visualization Plugin.
 
 ## Details
 
-This plugin is used to visualize the call chain of the C language program.
+This plugin is used to visualize the call chain of C language programs.
 
 How to use:
 
-1.Open your C language project.
+1. Open your C language project.
 
-2.Open the command palette (Ctrl+Shift+P) and select `C Relation: Init database`. The first time it will take a long time to scan the whole project and build the database.
+2. Open the command palette (Ctrl+Shift+P) and select `C Relation: Init database`. The first time will take a while to scan the entire project and build the database.
 
-3.**Select** a function name and then open right click menu and select `Show Relations`. You can see the call chain of the function in a new panel.
+3. **Select** a function name, then open the right-click menu and select `Show Relations`. You can see the call chain of the function in a new panel.
 
-If you want show relations by a shortcut key, you can add the following code to your `keybindings.json` file. For example: 
+If you want to show relations using a shortcut key, you can add the following code to your `keybindings.json` file. For example: 
 
 ```
 {
@@ -24,27 +24,27 @@ If you want show relations by a shortcut key, you can add the following code to 
 }
 ```
 
-4.In the new panel, you can click the function name to collapse or expand the call chain. Moreover, it will just jump to the function code when you right click the function name. If the tree nodes are too many, you can drag the tree to make it easier to read.
+4. In the new panel, you can click the function name to collapse or expand the call chain. Moreover, you can right-click the function name to jump directly to the function code. If there are too many tree nodes, you can drag the tree to make it easier to read.
 
 ![How to use](images/how_to_use.gif)
 
 ![Zoom](images/zoom.gif)
 
-5.If you have modified the C language project, you can update the database by running the command `C Relation: Update database`. It will only scan the updated files. If you want to update the whole database, you can run the command `C Relation: Force update database`.
+5. If you have modified the C language project, you can update the database by running the command `C Relation: Update database`. It will only scan the modified files. If you want to rebuild the entire database, you can run the command `C Relation: Force update database`.
 
 ## Issues
-If you have any questions, please contact me at [GitHub](https://github.com/SingleMoonlight/crelation).
+If you have any questions, please contact me on [GitHub](https://github.com/SingleMoonlight/crelation).
 
-Before asking questions, please open the VS Code output panel and check the log of `C Relation`. It's better if you can open `Help` -> `Toggle Developer Tools` to see if there are any errors. It will help me to solve your problem.
+Before asking questions, please open the VS Code output panel and check the `C Relation` log. It's better if you can open `Help` -> `Toggle Developer Tools` to see if there are any errors. This will help me solve your problem faster.
 
 ## Q&A
-1.command 'crelation.init' not found
+1. command 'crelation.init' not found
 
-If you encounter this problem, it most be because you uses the extension in some Linux system which is not supported GLIBCXX_3.4.29. 
+If you encounter this problem, it's most likely because you're using the extension on a Linux system that does not support GLIBCXX_3.4.29.
 
-You can use `strings /usr/lib/x86_64-linux-gnu/libstdc++.so.6 | grep GLIBCXX` to check the version of GLIBCXX. If the version is lower than 3.4.29, you can try to install a newer version of GLIBCXX. There is no a good solution for this problem at present.
+You can use `strings /usr/lib/x86_64-linux-gnu/libstdc++.so.6 | grep GLIBCXX` to check the version of GLIBCXX. If the version is lower than 3.4.29, you can try to install a newer version of GLIBCXX. There is no good solution for this problem at present.
 
-2.Incorrect parsing on macros nested with logical expressions
+2. Incorrect parsing of macros nested with logical expressions
 For example:
 ```c
 if (
@@ -57,7 +57,7 @@ if (
 }
 ```
 
-This is a bug of tree-sitter-c. I have submitted a issue to the repository of tree-sitter-c. However, I don't know when it will be fixed.
+This is a known limitation of tree-sitter-c. I have submitted an issue to the tree-sitter-c repository. However, I don't know when it will be fixed.
 
 This bug has a small probability of affecting the parsing results, manifested as the caller of a function being displayed as global, but it does not affect the jump function.
 

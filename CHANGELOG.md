@@ -1,5 +1,15 @@
 # Change Log
 
+## 1.0.11
+- fix: fix crash when logLevel configuration is not set
+- fix: fix "The path argument must be of type string" error
+- fix: fix high CPU usage during database initialization
+- feat: add progress bar display during database operations
+- refactor: create DatabaseManager class with caching support
+- refactor: create ParserManager singleton for Tree-sitter operations
+- refactor: create ErrorHandler with structured error codes
+- docs: update readme
+
 ## 1.0.10
 - refactor: use an iterative approach to traverse the directory and the AST to avoid stack overflow
 - docs: update readme

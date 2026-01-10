@@ -36,10 +36,10 @@ function showStatusbarItem() {
 /**
  * 设置状态栏文本
  * @param {string} text 
- * @param {boolean} isLoading - 是否显示加载图标
+ * @param {boolean} loading - 是否显示加载图标
  */
-function setStatusbarText(text, isLoading = false) {
-    if (isLoading) {
+function setStatusbarText(text, loading = false) {
+    if (loading) {
         statusbarItem.text = `$(sync~spin) ${textPrefix}${text}`;
         isLoading = true;
     } else {
@@ -48,9 +48,35 @@ function setStatusbarText(text, isLoading = false) {
     }
 }
 
+/**
+ * 设置状态栏进度
+ * @param {number} current 当前进度
+ * @param {number} total 总进度
+ * @param {string} message 额外消息
+ */
+function setProgress(current, total, message = '') {
+    const percentage = Math.floor((current / total) * 100);
+    const progressBar = generateProgressBar(percentage);
+    const text = message ? `${message} ${progressBar} ${percentage}%` : `${progressBar} ${percentage}%`;
+    statusbarItem.text = `${textPrefix}${text}`;
+}
+
+/**
+ * 生成进度条
+ * @param {number} percentage 百分比
+ * @returns {string}
+ */
+function generateProgressBar(percentage) {
+    const barLength = 10;
+    const filled = Math.floor((percentage / 100) * barLength);
+    const empty = barLength - filled;
+    return '█'.repeat(filled) + '░'.repeat(empty);
+}
+
 module.exports = {
     initStatusbar,
     hideStatusbarItem,
     showStatusbarItem,
-    setStatusbarText
+    setStatusbarText,
+    setProgress
 };
