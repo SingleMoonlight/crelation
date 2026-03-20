@@ -1,5 +1,8 @@
 # Change Log
 
+## 1.0.12
+- fix: slow parsing of a large number of preprocessing statements 
+
 ## 1.0.11
 - fix: fix crash when logLevel configuration is not set
 - fix: fix "The path argument must be of type string" error

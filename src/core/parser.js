@@ -33,10 +33,10 @@ class ParserManager {
     async parseFile(filePath) {
         try {
             print('debug', `Parsing file: ${filePath}`);
-            
+
             const code = await fs.readFile(filePath, 'utf-8');
             const tree = this.parser.parse(code);
-            
+
             const result = {
                 functionDefinitions: [],
                 functionCalls: []
@@ -46,7 +46,7 @@ class ParserManager {
             this.traverseAST(tree.rootNode, result);
 
             print('debug', `Parsed file: ${filePath}, functions: ${result.functionDefinitions.length}, calls: ${result.functionCalls.length}`);
-            
+
             return result;
         } catch (error) {
             throw ErrorHandler.create(
@@ -68,6 +68,11 @@ class ParserManager {
 
         while (stack.length > 0) {
             const node = stack.pop();
+
+            // 跳过预处理指令（例如 #define），避免大量宏导致遍历性能下降
+            if (node.type && node.type.startsWith('preproc')) {
+                continue;
+            }
 
             if (node === 'EXIT_FUNCTION') {
                 // 退出函数作用域
@@ -131,7 +136,7 @@ class ParserManager {
      */
     extractFunctionCall(node, functionStack) {
         const functionNode = node.childForFieldName('function');
-        
+
         if (functionNode?.type === 'identifier') {
             const calleeName = functionNode.text;
             const callerName = functionStack[functionStack.length - 1] || 'global';
@@ -223,7 +228,7 @@ class ParserManager {
         try {
             const tree = this.parser.parse(code);
             const hasError = tree.rootNode.hasError();
-            
+
             return {
                 valid: !hasError,
                 tree: tree,
