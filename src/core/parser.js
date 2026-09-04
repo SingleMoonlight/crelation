@@ -64,45 +64,63 @@ class ParserManager {
      */
     traverseAST(rootNode, result) {
         const functionStack = [];
-        const stack = [rootNode];
+        // 使用单个 TreeCursor 做迭代式 DFS，避免为每个节点构造 JS 节点对象。
+        // tree-sitter 0.22.x 的 node.children 会经共享 transfer buffer 逐节点
+        // 编组并查树级节点缓存，遍历大型 flat 节点（如数千元素的数组初始化表）
+        // 时退化到数万毫秒；cursor 方式遍历同样的树只需数毫秒。
+        const cursor = rootNode.walk();
+        // 子树嵌套标记：进入一棵子树（有子节点）时入栈，记录该子树根是否
+        // function_definition；离开子树时出栈并据此恢复 functionStack。
+        const fdefMarkers = [];
 
-        while (stack.length > 0) {
-            const node = stack.pop();
+        while (true) {
+            const nodeType = cursor.nodeType;
 
             // 跳过预处理指令（例如 #define），避免大量宏导致遍历性能下降
-            if (node.type && node.type.startsWith('preproc')) {
+            const isPreproc = nodeType.startsWith('preproc');
+            let isFunctionDefinition = false;
+            let descended = false;
+
+            if (!isPreproc) {
+                // 处理函数定义
+                if (nodeType === 'function_definition') {
+                    // currentNode 仅在函数定义节点处构造，数量远少于总节点数
+                    const functionInfo = this.extractFunctionDefinition(cursor.currentNode);
+                    if (functionInfo) {
+                        result.functionDefinitions.push(functionInfo);
+                        functionStack.push(functionInfo.name);
+                        isFunctionDefinition = true;
+                    }
+                }
+
+                // 处理函数调用
+                if (nodeType === 'call_expression') {
+                    const callInfo = this.extractFunctionCall(cursor.currentNode, functionStack);
+                    if (callInfo) {
+                        result.functionCalls.push(callInfo);
+                    }
+                }
+
+                descended = cursor.gotoFirstChild();
+            }
+
+            if (descended) {
+                fdefMarkers.push(isFunctionDefinition);
                 continue;
             }
 
-            if (node === 'EXIT_FUNCTION') {
-                // 退出函数作用域
-                if (functionStack.length > 0) {
+            // 叶子节点（或被跳过的预处理节点）无子树，直接寻找下一个待处理节点
+            while (true) {
+                if (cursor.gotoNextSibling()) {
+                    break;
+                }
+                if (!cursor.gotoParent()) {
+                    return;
+                }
+                // 离开一棵子树：若该子树根是 function_definition 则退出其函数作用域
+                if (fdefMarkers.pop()) {
                     functionStack.pop();
                 }
-                continue;
-            }
-
-            // 处理函数定义
-            if (node.type === 'function_definition') {
-                const functionInfo = this.extractFunctionDefinition(node);
-                if (functionInfo) {
-                    result.functionDefinitions.push(functionInfo);
-                    functionStack.push(functionInfo.name);
-                    stack.push('EXIT_FUNCTION');
-                }
-            }
-
-            // 处理函数调用
-            if (node.type === 'call_expression') {
-                const callInfo = this.extractFunctionCall(node, functionStack);
-                if (callInfo) {
-                    result.functionCalls.push(callInfo);
-                }
-            }
-
-            // 将子节点压入栈（逆序）
-            for (let i = node.children.length - 1; i >= 0; i--) {
-                stack.push(node.children[i]);
             }
         }
     }

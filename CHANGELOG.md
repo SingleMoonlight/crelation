@@ -1,5 +1,8 @@
 # Change Log
 
+## 1.0.13
+- fix: extreme slow parsing of files with large static data tables (e.g. CMSIS DSP library tables with thousands of elements) by traversing the AST with a single TreeCursor instead of per-node JS object marshalling
+
 ## 1.0.12
 - fix: slow parsing of a large number of preprocessing statements 
 
