@@ -1,22 +1,26 @@
 const fs = require('fs').promises;
 const path = require('path');
-const { getProjectPath } = require('./project');
 const { print } = require('../frame/channel');
 const { getDatabaseManager } = require('./database');
 const { getParserManager } = require('./parser');
-const { ErrorHandler, ErrorCodes } = require('./error');
+
+/** @typedef {import('./database').FunctionDefinition} FunctionDefinition */
+/** @typedef {import('./database').FunctionDefinitions} FunctionDefinitions */
+/** @typedef {import('./database').FunctionCalls} FunctionCalls */
 
 /**
  * 递归遍历目录并解析代码文件
  * @param {string} dir 要扫描的目录路径
  * @param {boolean} forceRescan 是否强制重新扫描
- * @param {Function} progressCallback 进度回调函数 (current, total, filename)
+ * @param {((current: number, total: number, filename: string) => void) | null} progressCallback 进度回调函数 (current, total, filename)
  */
 async function traverseDirectory(dir, forceRescan = false, progressCallback = null) {
     const dbManager = getDatabaseManager();
     const parserManager = getParserManager();
-    
+
+    /** @type {FunctionDefinitions} */
     let functionDefinitions = {};
+    /** @type {FunctionCalls} */
     let functionCalls = {};
     let lastScanTime = 0;
 
@@ -33,13 +37,13 @@ async function traverseDirectory(dir, forceRescan = false, progressCallback = nu
         }
     }
 
-    // 记录需要处理的文件列表
-    const processedFiles = new Set();
-
     // 处理单个文件
+    /**
+     * @param {string} filePath 文件的绝对路径
+     */
     async function processFile(filePath) {
-        const relativePath = path.relative(await getProjectPath(), filePath);
-        processedFiles.add(relativePath);
+        // 相对路径以扫描根目录为基准，与数据库中保存的 filePath 保持一致
+        const relativePath = path.relative(dir, filePath);
 
         // 清除该文件的旧数据
         for (const funcName in functionDefinitions) {
@@ -84,6 +88,10 @@ async function traverseDirectory(dir, forceRescan = false, progressCallback = nu
     }
 
     // 辅助函数：清理已删除文件的数据
+    /**
+     * @param {Record<string, any>} dataSet 定义表或调用表
+     * @param {Set<string>} existingFiles 现存的相对路径集合
+     */
     function cleanupDeletedFiles(dataSet, existingFiles) {
         for (const key in dataSet) {
             if (Array.isArray(dataSet[key])) {
@@ -93,7 +101,7 @@ async function traverseDirectory(dir, forceRescan = false, progressCallback = nu
                 );
             } else if (dataSet[key]?.calledBy) {
                 // 清理已删除文件的调用记录
-                dataSet[key].calledBy = dataSet[key].calledBy.filter(call =>
+                dataSet[key].calledBy = dataSet[key].calledBy.filter((/** @type {{ filePath: string }} */ call) =>
                     existingFiles.has(call.filePath)
                 );
             }
@@ -108,16 +116,23 @@ async function traverseDirectory(dir, forceRescan = false, progressCallback = nu
 
     // 存储所有现存文件路径
     const allExistingFiles = new Set();
+    /** @type {string[]} */
     const filesToProcess = [];
-    
+
     // 第一遍扫描：收集所有文件
+    /**
+     * @param {string} startDir 起始目录
+     */
     async function collectFiles(startDir) {
         const dirStack = [startDir];
         const visitedPaths = new Set();
         
         while (dirStack.length > 0) {
             const currentDir = dirStack.pop();
-            
+            if (!currentDir) {
+                continue;
+            }
+
             try {
                 const realPath = await fs.realpath(currentDir);
                 
@@ -134,7 +149,7 @@ async function traverseDirectory(dir, forceRescan = false, progressCallback = nu
                     if (entry.isDirectory()) {
                         dirStack.push(fullPath);
                     } else if (parserManager.isSupported(fullPath)) {
-                        const relativePath = path.relative(await getProjectPath(), fullPath);
+                        const relativePath = path.relative(dir, fullPath);
                         allExistingFiles.add(relativePath);
 
                         const stats = await fs.stat(fullPath);
@@ -187,7 +202,7 @@ async function traverseDirectory(dir, forceRescan = false, progressCallback = nu
 /**
  * 查询函数定义信息
  * @param {string} functionName 要查询的函数名
- * @returns {Promise<Array>} 函数定义位置数组
+ * @returns {Promise<FunctionDefinition[]>} 函数定义位置数组
  */
 async function getFunctionDefinition(functionName) {
     const dbManager = getDatabaseManager();
@@ -197,7 +212,7 @@ async function getFunctionDefinition(functionName) {
 /**
  * 查询函数调用关系
  * @param {string} functionName 要查询的函数名
- * @returns {Promise<Object>} 调用关系对象
+ * @returns {Promise<FunctionCalls>} 调用关系对象
  */
 async function getFunctionCalls(functionName) {
     const dbManager = getDatabaseManager();

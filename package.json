@@ -8,9 +8,9 @@
     "type": "git",
     "url": "https://github.com/SingleMoonlight/crelation"
   },
-  "version": "1.0.13",
+  "version": "1.0.14",
   "engines": {
-    "vscode": "^1.60.0"
+    "vscode": "^1.74.0"
   },
   "categories": [
     "Programming Languages",
@@ -21,6 +21,25 @@
   ],
   "main": "./extension.js",
   "contributes": {
+    "viewsContainers": {
+      "panel": [
+        {
+          "id": "crelationPanel",
+          "title": "C Relation",
+          "icon": "images/icon.png"
+        }
+      ]
+    },
+    "views": {
+      "crelationPanel": [
+        {
+          "id": "crelation.relationsView",
+          "name": "Relations",
+          "icon": "images/icon.png",
+          "type": "webview"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "crelation.init",
@@ -78,21 +97,23 @@
             "order": 0,
             "type": "string",
             "default": "default",
-            "description": "The position of the relations shown.",
+            "markdownDescription": "The position of the relations shown. When set to `bottom`, `crelation.relationsTabMode` is ignored.",
             "enum": [
               "default",
-              "right"
+              "right",
+              "bottom"
             ],
             "enumDescriptions": [
               "Show in the main editor",
-              "Show in the right editor"
+              "Show in the right editor",
+              "Show in the bottom panel"
             ]
           },
-          "crelation.relationsPanelMode": {
+          "crelation.relationsTabMode": {
             "order": 1,
             "type": "string",
             "default": "multiple",
-            "description": "The mode of the relations panel.",
+            "markdownDescription": "Whether editor tabs are reused. Only takes effect when `crelation.relationsPosition` is not `bottom`.",
             "enum": [
               "multiple",
               "single"
@@ -132,7 +153,7 @@
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
-    "@types/vscode": "^1.60.0",
+    "@types/vscode": "^1.74.0",
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.4.1",
     "eslint": "^9.16.0"

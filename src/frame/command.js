@@ -23,7 +23,7 @@ function initCommand(context)
 	registerCommand(context, 'crelation.forceUpdate', api.forceUpdateDatabase);
 	registerCommand(context, 'crelation.showRelations', api.showRelations);
 
-	api.autoInitDatabase(context);
+	api.autoInitDatabase();
 	api.autoUpdateDatabase(context);
 }
 

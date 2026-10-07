@@ -4,10 +4,44 @@ const { getProjectDatabasePath } = require('./project');
 const { print } = require('../frame/channel');
 
 /**
+ * 函数定义位置
+ * @typedef {Object} FunctionDefinition
+ * @property {string} filePath 相对于工作区根目录的文件路径
+ * @property {number} lineNumber 行号
+ */
+
+/**
+ * 函数调用点
+ * @typedef {Object} CallerInfo
+ * @property {string} caller 调用者函数名
+ * @property {string} filePath 相对于工作区根目录的文件路径
+ * @property {number} lineNumber 行号
+ */
+
+/**
+ * 函数定义表，以函数名为键
+ * @typedef {Record<string, FunctionDefinition[]>} FunctionDefinitions
+ */
+
+/**
+ * 函数调用表，以被调用函数名为键
+ * @typedef {Record<string, { calledBy: CallerInfo[] }>} FunctionCalls
+ */
+
+/**
+ * 内存缓存
+ * @typedef {Object} DatabaseCache
+ * @property {FunctionDefinitions | null} functionDefinitions
+ * @property {FunctionCalls | null} functionCalls
+ * @property {number | null} lastScanTime
+ */
+
+/**
  * 数据库管理器 - 统一管理数据访问和缓存
  */
 class DatabaseManager {
     constructor() {
+        /** @type {DatabaseCache} */
         this.cache = {
             functionDefinitions: null,
             functionCalls: null,
@@ -81,8 +115,8 @@ class DatabaseManager {
 
     /**
      * 保存所有数据
-     * @param {Object} functionDefinitions 函数定义数据
-     * @param {Object} functionCalls 函数调用数据
+     * @param {FunctionDefinitions} functionDefinitions 函数定义数据
+     * @param {FunctionCalls} functionCalls 函数调用数据
      */
     async saveAll(functionDefinitions, functionCalls) {
         try {
@@ -121,12 +155,13 @@ class DatabaseManager {
     /**
      * 获取函数定义
      * @param {string} functionName 函数名
-     * @returns {Promise<Array>}
+     * @returns {Promise<FunctionDefinition[]>}
      */
     async getFunctionDefinitions(functionName) {
         try {
             await this.loadCache();
-            const result = this.cache.functionDefinitions[functionName] || [];
+            const definitions = this.cache.functionDefinitions || {};
+            const result = definitions[functionName] || [];
             print('debug', `Function definitions for: ${functionName}, count: ${result.length}`);
             return result;
         } catch (error) {
@@ -138,13 +173,14 @@ class DatabaseManager {
     /**
      * 获取函数调用关系
      * @param {string} functionName 函数名
-     * @returns {Promise<Object>}
+     * @returns {Promise<FunctionCalls>}
      */
     async getFunctionCalls(functionName) {
         try {
             await this.loadCache();
+            const calls = this.cache.functionCalls || {};
             const result = {
-                [functionName]: this.cache.functionCalls[functionName] || { calledBy: [] }
+                [functionName]: calls[functionName] || { calledBy: [] }
             };
             print('debug', `Function calls for: ${functionName}, callers: ${result[functionName].calledBy.length}`);
             return result;
@@ -163,7 +199,7 @@ class DatabaseManager {
     async getLastScanTime() {
         try {
             await this.loadCache();
-            return this.cache.lastScanTime;
+            return this.cache.lastScanTime ?? 0;
         } catch (error) {
             print('error', 'Failed to get last scan time.', error);
             return 0;
@@ -172,7 +208,7 @@ class DatabaseManager {
 
     /**
      * 获取所有函数定义数据
-     * @returns {Promise<Object>}
+     * @returns {Promise<FunctionDefinitions>}
      */
     async getAllDefinitions() {
         await this.loadCache();
@@ -181,7 +217,7 @@ class DatabaseManager {
 
     /**
      * 获取所有函数调用数据
-     * @returns {Promise<Object>}
+     * @returns {Promise<FunctionCalls>}
      */
     async getAllCalls() {
         await this.loadCache();
@@ -217,6 +253,7 @@ class DatabaseManager {
 }
 
 // 单例模式
+/** @type {DatabaseManager | null} */
 let instance = null;
 
 /**

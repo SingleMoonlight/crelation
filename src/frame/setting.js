@@ -9,6 +9,27 @@ const { showWarningMessage } = require('../frame/message');
 let dataSavePath = '';
 
 /**
+ * 判断目标路径是否就是源路径本身、或位于源路径内部
+ * @param {string} sourcePath 源目录
+ * @param {string} targetPath 目标目录
+ * @returns {boolean}
+ */
+function isSameOrInside(sourcePath, targetPath) {
+    const relative = path.relative(path.resolve(sourcePath), path.resolve(targetPath));
+
+    // 相对路径为空表示同一目录
+    if (relative === '') {
+        return true;
+    }
+    // 不在同一盘符时 path.relative 返回绝对路径
+    if (path.isAbsolute(relative)) {
+        return false;
+    }
+    // 以 .. 开头（且不是名为 ..xxx 的子目录）说明目标在源目录之外
+    return relative !== '..' && !relative.startsWith('..' + path.sep);
+}
+
+/**
  * 迁移数据
  * @param {string} oldPath 旧路径
  * @param {string} newPath 新路径
@@ -19,6 +40,12 @@ async function performMigration(oldPath, newPath) {
         oldPath = path.normalize(oldPath);
         newPath = path.normalize(newPath);
 
+        // 目标目录位于源目录内部时，下面的递归会扫描到自己刚创建出来的目录，从而无限递归下去直到耗尽内存，必须直接跳过
+        if (isSameOrInside(oldPath, newPath)) {
+            print('warn', `Skip migration: target "${newPath}" is the same as or inside source "${oldPath}".`);
+            return;
+        }
+
         // 校验源路径有效性
         try {
             await fs.access(oldPath);
@@ -28,6 +55,9 @@ async function performMigration(oldPath, newPath) {
         }
 
         // 创建完整目标路径结构（确保多级目录存在）
+        /**
+         * @param {string} targetPath 目标路径
+         */
         const createParentDir = async (targetPath) => {
             const parentDir = path.dirname(targetPath);
             try {
@@ -41,10 +71,13 @@ async function performMigration(oldPath, newPath) {
         await fs.mkdir(newPath, { recursive: true });
 
         // 增强版目录遍历（处理符号链接等特殊情况）
+        /**
+         * @param {string} dirPath 目录路径
+         */
         const safeReaddir = async (dirPath) => {
             try {
                 return await fs.readdir(dirPath, { withFileTypes: true });
-            } catch (error) {
+            } catch {
                 print('warn', 'Skipping unreadable directory: ', dirPath);
                 return [];
             }
@@ -66,7 +99,7 @@ async function performMigration(oldPath, newPath) {
             try {
                 await fs.copyFile(src, dest);
                 await fs.unlink(src);
-            } catch (error) {
+            } catch {
                 print('warn', 'File migration failed from ', src, 'to ', dest);
             }
         }
@@ -86,7 +119,7 @@ async function performMigration(oldPath, newPath) {
                 maxRetries: 3,
                 retryDelay: 500
             });
-        } catch (error) {
+        } catch {
             print('warn', 'Directory deletion failed: ', oldPath);
         }
 
@@ -139,7 +172,7 @@ function initSetting(context)
         context.globalState.update('dataSavePath', settingDataSavePath);
     }
 
-    dataSavePath = context.globalState.get('dataSavePath');
+    dataSavePath = context.globalState.get('dataSavePath') ?? '';
     
     // 验证其他配置
     validateOtherSettings();
@@ -162,7 +195,7 @@ function getDataSavePath()
 function getAutoInitDatabase()
 {
     const config = vscode.workspace.getConfiguration('crelation');
-    return config.get('autoInitDatabase');
+    return config.get('autoInitDatabase') ?? false;
 }
 
 /**
@@ -172,17 +205,17 @@ function getAutoInitDatabase()
 function getRelationPosition()
 {
     const config = vscode.workspace.getConfiguration('crelation');
-    return config.get('relationsPosition');
+    return config.get('relationsPosition') ?? 'default';
 }
 
 /**
- * 获取调用关系面板模式
- * @returns {string} 调用关系面板模式
+ * 获取编辑器标签页模式
+ * @returns {string} 编辑器标签页模式
  */
-function getRelationPanelMode()
+function getRelationTabMode()
 {
     const config = vscode.workspace.getConfiguration('crelation');
-    return config.get('relationsPanelMode');
+    return config.get('relationsTabMode') ?? 'multiple';
 }
 
 /**
@@ -192,7 +225,7 @@ function getRelationPanelMode()
 function getAutoUpdateInterval()
 {
     const config = vscode.workspace.getConfiguration('crelation');
-    return config.get('autoUpdateInterval');
+    return config.get('autoUpdateInterval') ?? 0;
 }
 
 /**
@@ -234,7 +267,23 @@ function validateOtherSettings() {
         print('warning', `Invalid logLevel: ${logLevel}, using default 'error'`);
         config.update('logLevel', 'error', true);
     }
-    
+
+    // 验证调用关系显示位置
+    const position = config.get('relationsPosition');
+    const validPositions = ['default', 'right', 'bottom'];
+    if (!validPositions.includes(position)) {
+        print('warn', `Invalid relationsPosition: ${position}, using default 'default'`);
+        config.update('relationsPosition', 'default', true);
+    }
+
+    // 验证编辑器标签页模式
+    const tabMode = config.get('relationsTabMode');
+    const validTabModes = ['multiple', 'single'];
+    if (!validTabModes.includes(tabMode)) {
+        print('warn', `Invalid relationsTabMode: ${tabMode}, using default 'multiple'`);
+        config.update('relationsTabMode', 'multiple', true);
+    }
+
     print('info', 'Configuration validation complete.');
 }
 
@@ -243,7 +292,7 @@ module.exports = {
     getDataSavePath,
     getAutoInitDatabase,
     getRelationPosition,
-    getRelationPanelMode,
+    getRelationTabMode,
     getAutoUpdateInterval,
     validateDataSavePath
 };

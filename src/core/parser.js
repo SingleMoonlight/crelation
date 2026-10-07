@@ -5,6 +5,42 @@ const CParser = require('tree-sitter-c');
 const { print } = require('../frame/channel');
 const { ErrorHandler, ErrorCodes } = require('./error');
 
+/** AST 节点，来自 tree-sitter 自带的类型声明 */
+/** @typedef {import('tree-sitter').SyntaxNode} SyntaxNode */
+
+/**
+ * 解析出的函数定义
+ * @typedef {Object} ParsedFunctionDefinition
+ * @property {string} name 函数名
+ * @property {number} lineNumber 行号
+ * @property {number} startLine 起始行
+ * @property {number} endLine 结束行
+ */
+
+/**
+ * 解析出的函数调用
+ * @typedef {Object} ParsedFunctionCall
+ * @property {string} callee 被调用函数名
+ * @property {string} caller 调用者函数名
+ * @property {number} lineNumber 行号
+ */
+
+/**
+ * 单个文件的解析结果
+ * @typedef {Object} ParseResult
+ * @property {ParsedFunctionDefinition[]} functionDefinitions
+ * @property {ParsedFunctionCall[]} functionCalls
+ */
+
+/**
+ * 语法错误信息
+ * @typedef {Object} SyntaxErrorInfo
+ * @property {string} type 节点类型
+ * @property {number} line 行号
+ * @property {number} column 列号
+ * @property {string} text 片段文本
+ */
+
 /**
  * 解析器管理类 - 封装Tree-sitter解析逻辑
  */
@@ -28,7 +64,7 @@ class ParserManager {
     /**
      * 解析单个文件
      * @param {string} filePath 文件路径
-     * @returns {Promise<Object>} 包含函数定义和调用关系的对象
+     * @returns {Promise<ParseResult>} 包含函数定义和调用关系的对象
      */
     async parseFile(filePath) {
         try {
@@ -52,15 +88,15 @@ class ParserManager {
             throw ErrorHandler.create(
                 ErrorCodes.PARSE_ERROR,
                 `Failed to parse file: ${filePath}`,
-                { filePath, error: error.message }
+                { filePath, error: error instanceof Error ? error.message : String(error) }
             );
         }
     }
 
     /**
      * 遍历AST并提取函数信息
-     * @param {Object} rootNode AST根节点
-     * @param {Object} result 结果对象
+     * @param {SyntaxNode} rootNode AST根节点
+     * @param {ParseResult} result 结果对象
      */
     traverseAST(rootNode, result) {
         const functionStack = [];
@@ -71,6 +107,7 @@ class ParserManager {
         const cursor = rootNode.walk();
         // 子树嵌套标记：进入一棵子树（有子节点）时入栈，记录该子树根是否
         // function_definition；离开子树时出栈并据此恢复 functionStack。
+        /** @type {boolean[]} */
         const fdefMarkers = [];
 
         while (true) {
@@ -127,8 +164,8 @@ class ParserManager {
 
     /**
      * 提取函数定义信息
-     * @param {Object} node AST节点
-     * @returns {Object|null} 函数定义信息
+     * @param {SyntaxNode} node AST节点
+     * @returns {ParsedFunctionDefinition | null} 函数定义信息
      */
     extractFunctionDefinition(node) {
         const declarator = node.childForFieldName('declarator');
@@ -148,9 +185,9 @@ class ParserManager {
 
     /**
      * 提取函数调用信息
-     * @param {Object} node AST节点
-     * @param {Array} functionStack 当前函数栈
-     * @returns {Object|null} 函数调用信息
+     * @param {SyntaxNode} node AST节点
+     * @param {string[]} functionStack 当前函数栈
+     * @returns {ParsedFunctionCall | null} 函数调用信息
      */
     extractFunctionCall(node, functionStack) {
         const functionNode = node.childForFieldName('function');
@@ -171,8 +208,8 @@ class ParserManager {
 
     /**
      * 查找函数名
-     * @param {Object} node AST节点
-     * @returns {string|null} 函数名
+     * @param {SyntaxNode | null} node AST节点
+     * @returns {string | null} 函数名
      */
     findFunctionName(node) {
         if (!node) return null;
@@ -192,9 +229,9 @@ class ParserManager {
 
     /**
      * 批量解析文件
-     * @param {Array<string>} filePaths 文件路径数组
-     * @param {Function} progressCallback 进度回调函数
-     * @returns {Promise<Array>} 解析结果数组
+     * @param {string[]} filePaths 文件路径数组
+     * @param {((current: number, total: number, filePath: string) => void) | null} progressCallback 进度回调函数
+     * @returns {Promise<Array<{ filePath: string, success: boolean, data?: ParseResult, error?: string }>>} 解析结果数组
      */
     async parseFiles(filePaths, progressCallback = null) {
         const results = [];
@@ -217,7 +254,7 @@ class ParserManager {
                 results.push({
                     filePath: filePaths[i],
                     success: false,
-                    error: error.message
+                    error: error instanceof Error ? error.message : String(error)
                 });
 
                 if (progressCallback) {
@@ -245,7 +282,7 @@ class ParserManager {
     validateSyntax(code) {
         try {
             const tree = this.parser.parse(code);
-            const hasError = tree.rootNode.hasError();
+            const hasError = tree.rootNode.hasError;
 
             return {
                 valid: !hasError,
@@ -256,24 +293,30 @@ class ParserManager {
             return {
                 valid: false,
                 tree: null,
-                errors: [error.message]
+                errors: [error instanceof Error ? error.message : String(error)]
             };
         }
     }
 
     /**
      * 收集语法错误
-     * @param {Object} node AST节点
-     * @returns {Array} 错误列表
+     * @param {SyntaxNode} node AST节点
+     * @returns {SyntaxErrorInfo[]} 错误列表
      */
     collectSyntaxErrors(node) {
+        /** @type {SyntaxErrorInfo[]} */
         const errors = [];
+        /** @type {SyntaxNode[]} */
         const stack = [node];
 
         while (stack.length > 0) {
             const current = stack.pop();
+            if (!current) {
+                continue;
+            }
 
-            if (current.type === 'ERROR' || current.isMissing()) {
+            // 注意 hasError / isMissing 在 tree-sitter 0.22 是属性而非方法
+            if (current.type === 'ERROR' || current.isMissing) {
                 errors.push({
                     type: current.type,
                     line: current.startPosition.row + 1,
@@ -292,6 +335,7 @@ class ParserManager {
 }
 
 // 单例模式
+/** @type {ParserManager | null} */
 let instance = null;
 
 /**

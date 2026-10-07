@@ -3,5 +3,11 @@
         "crelation",
         "Rescan",
         "treemap"
-    ]
+    ],
+    "files.watcherExclude": {
+        "**/.vscode-test/**": true
+    },
+    "search.exclude": {
+        "**/.vscode-test/**": true
+    }
 }

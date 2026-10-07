@@ -76,6 +76,16 @@ This bug has a small probability of affecting the parsing results, manifested as
 | crelation.forceUpdate   | C Relation: Force update database | Scan the project and rebuild the database |
 | crelation.showRelations | Show Relations                   | Show the function call                    |
 
+### Display modes
+
+Set `crelation.relationsPosition` to `bottom` to show the call chain in the **bottom panel**, in a `C Relation` tab next to Terminal / Problems / Output. The code and the call graph stay on the same screen, so there is no need to switch between tabs.
+
+The view can be dragged from the panel to the side bar (or the secondary side bar) if you prefer it there. Note that a webview view cannot be placed into the editor area, so use `default` or `right` if you want the graph as an editor tab.
+
+The `C Relation` tab stays in the bottom panel whenever the extension is active, even while this setting is not `bottom` — it just stays empty until you run `Show Relations`. VS Code does not let an extension add or remove panel containers dynamically, and gating the container with a `when` clause is not a workaround: the tab then disappears as soon as you switch to another panel tab.
+
+In the bottom panel `crelation.relationsTabMode` is ignored, because the panel holds a single view.
+
 ### Settings
 
 | ID                     | Description                        | Default                 |
@@ -83,6 +93,6 @@ This bug has a small probability of affecting the parsing results, manifested as
 | crelation.dataSavePath | The path to save the database file | `<username>/.crelation` |
 | crelation.autoInitDatabase | Whether to init the database automatically when opening a project | `off` |
 | crelation.autoUpdateInterval | The interval to update the database automatically when opening a project. The unit is minutes. Default is 0, which means no auto update. Changed value will take effect after **REBOOT** the VS Code. | 0 |
-| crelation.relationsPosition | The position of the relations shown | `default` |
-| crelation.relationsPanelMode | The mode of the relations panel.                             | `multiple`              |
+| crelation.relationsPosition | The position of the relations shown: `default` main editor, `right` right editor, `bottom` bottom panel | `default` |
+| crelation.relationsTabMode | Whether editor tabs are reused: `multiple` opens a new tab for each relation, `single` reuses one tab. Ignored when `relationsPosition` is `bottom` | `multiple` |
 | crelation.logLevel     | The log level of the extension     | `error`                   |

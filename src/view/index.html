@@ -8,6 +8,8 @@
     <script type="module">
         let rootData = null;
         let treemap = null;
+        // 是否已经收到过树数据，用于判断占位提示该不该显示
+        let hasTreeData = false;
         let i = 0,
             duration = 200, // 动画时间
             root;
@@ -27,26 +29,56 @@
             return root;
         }
 
+        // 宽度由 svg 的 100% 自适应，只需高度用于树的垂直居中
         let margin = { top: 20, right: 90, bottom: 30, left: 90 },
-            width = document.getElementById('view').clientWidth - margin.left - margin.right,
             height = document.getElementById('view').clientHeight - margin.top - margin.bottom;
 
-        let svg = d3.select("svg")
+        // 缩放行为绑定在 <svg> 元素上，变换则作用在其内部的 <g> 上
+        const svgRoot = document.querySelector('#view svg');
+        // 记录当前的缩放和平移状态，面板尺寸变化时在此基础上修正
+        let currentTransform = d3.zoomIdentity;
+
+        const zoomBehavior = d3.zoom()
+            .filter(function (event) {
+                // 禁用双击事件、鼠标滚动和触摸板/触摸屏的捏合手势
+                return event.type !== 'dblclick' && event.type !== 'wheel' && event.type !== 'touchstart';
+            })
+            .on("zoom", function (event) {
+                currentTransform = event.transform;
+                svg.attr("transform", event.transform);
+            });
+
+        let svg = d3.select(svgRoot)
             .attr("width", "100%")
             .attr("height", "100%")
-            .call(d3.zoom()
-                .filter(function (event) {
-                    // 禁用双击事件、鼠标滚动和触摸板/触摸屏的捏合手势
-                    return event.type !== 'dblclick' && event.type !== 'wheel' && event.type !== 'touchstart';
-                })
-                .on("zoom", function (event) {
-                    svg.attr("transform", event.transform);
-                }))
+            .call(zoomBehavior)
             .append("g")
             .attr("transform", `translate(${margin.left}, ${height / 2}) scale(1)`); // 设置初始位置
 
+        // 将视图重置到垂直居中的初始位置
+        function resetView() {
+            d3.select(svgRoot).call(zoomBehavior.transform, d3.zoomIdentity.translate(margin.left, height / 2).scale(1));
+        }
+
         // 模拟一次缩放和平移操作，将树拖到垂直居中
-        d3.select("svg").call(d3.zoom().transform, d3.zoomIdentity.translate(margin.left, height / 2).scale(1));
+        resetView();
+
+        // 底部面板的高度会被用户随时拖动，尺寸变化时按高度差的一半平移，使树保持垂直居中，同时不丢失当前的缩放和平移
+        let lastHeight = height;
+        new ResizeObserver(() => {
+            const newHeight = document.getElementById('view').clientHeight - margin.top - margin.bottom;
+
+            if (Math.abs(newHeight - lastHeight) < 1) {
+                return;
+            }
+
+            const delta = (newHeight - lastHeight) / 2;
+            lastHeight = newHeight;
+            height = newHeight;
+
+            // 触发一次缩放事件，事件回调中会更新 currentTransform
+            d3.select(svgRoot).call(zoomBehavior.transform, currentTransform.translate(0, delta));
+        }).observe(document.getElementById('view'));
 
         function collapse(d) {
             if (d.children) {
@@ -57,6 +89,10 @@
         }
 
         function initTreeData(treeData) {
+            // 有数据了，隐藏占位提示
+            hasTreeData = true;
+            document.getElementById('placeholder').classList.add('hidden');
+
             rootData = transformData(treeData);
             // 设置节点的宽度和高度间隔
             treemap = d3.tree().nodeSize([50, 0]);
@@ -67,6 +103,8 @@
             if (root.children) {
                 root.children.forEach(collapse);
             }
+            // 面板模式会复用同一个视图，重置视图避免沿用上一次的平移和缩放导致树跑到视野外
+            resetView();
             update(root);
         }
 
@@ -300,6 +338,13 @@
             vscodeApi.postMessage(message);
         }
 
+        // 根据结果显示位置切换占位提示的文案
+        function updatePlaceholderMode(message) {
+            const placeholder = document.getElementById('placeholder');
+            placeholder.dataset.mode = message.position === 'bottom' ? 'bottom' : 'tab';
+            placeholder.classList.toggle('hidden', message.host !== 'view' || hasTreeData);
+        }
+
         // 接收来自VSCode消息
         function receiveMessageFromVscode() {
             window.addEventListener('message', event => {
@@ -308,6 +353,10 @@
                     case "receiveTreeData":
                         // 初始化树数据
                         initTreeData(message.treeData);
+                        break;
+                    case 'updatePosition':
+                        // 更新占位提示，说明结果会显示在哪里
+                        updatePlaceholderMode(message);
                         break;
                     case 'receiveChildNodes':
                         // 处理从VSCode发送的子节点数据
@@ -367,6 +416,13 @@
         // 初始化时调用接收消息的函数
         document.addEventListener('DOMContentLoaded', () => {
             receiveMessageFromVscode();
+            // 监听器注册好之后再主动查询显示位置，避免扩展过早发送的消息丢失
+            vscodeApi.postMessage({ command: 'requestPosition' });
+
+            // 点击按钮把结果显示位置切到本面板
+            document.getElementById('use-panel-button').addEventListener('click', () => {
+                vscodeApi.postMessage({ command: 'useBottomPosition' });
+            });
         });
     </script>
     <style>
@@ -383,6 +439,74 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
+            position: relative;
+        }
+
+        /* 尚未查询任何函数时显示，收到树数据后隐藏 */
+        #placeholder {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 0 24px;
+            text-align: center;
+            pointer-events: none;
+            font: 13px sans-serif;
+            color: var(--vscode-descriptionForeground);
+        }
+
+        #placeholder.hidden {
+            display: none;
+        }
+
+        /* 两套文案按显示位置二选一，mode 由扩展通过 updatePosition 消息设置 */
+        /* 标题、说明、按钮之间用 gap 控制间距，所以这里必须是 flex 布局 */
+        #placeholder > div {
+            display: none;
+        }
+
+        #placeholder[data-mode="bottom"] .only-bottom,
+        #placeholder[data-mode="tab"] .only-tab {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        #placeholder .placeholder-title {
+            margin: 0;
+            font-size: 15px;
+            color: var(--vscode-foreground);
+        }
+
+        #placeholder .placeholder-hint {
+            margin: 0;
+        }
+
+        #placeholder code {
+            padding: 1px 4px;
+            border-radius: 3px;
+            background: var(--vscode-textCodeBlock-background);
+            font-family: var(--vscode-editor-font-family, monospace);
+        }
+
+        #placeholder button {
+            pointer-events: auto;
+            margin-top: 10px;
+            padding: 4px 12px;
+            border: none;
+            border-radius: 2px;
+            cursor: pointer;
+            font: inherit;
+            color: var(--vscode-button-foreground);
+            background: var(--vscode-button-background);
+        }
+
+        #placeholder button:hover {
+            background: var(--vscode-button-hoverBackground);
         }
 
         .node rect {
@@ -420,6 +544,20 @@
 <body>
     <div id="view">
         <svg></svg>
+        <!-- 默认隐藏：只有底部面板视图需要它，编辑器标签页一创建就带着数据 -->
+        <div id="placeholder" class="hidden" data-mode="tab">
+            <!-- 位置为bottom时：结果会显示在本面板 -->
+            <div class="only-bottom">
+                <p class="placeholder-title">No relations to show</p>
+                <p class="placeholder-hint">Select a function name in a C file, then run <strong>Show Relations</strong> from the right-click menu.</p>
+            </div>
+            <!-- 其他位置时：结果会显示在编辑器标签页，这里始终为空 -->
+            <div class="only-tab">
+                <p class="placeholder-title">Relations open in an editor tab</p>
+                <p class="placeholder-hint">Use <code>crelation.relationsPosition</code> to choose where the call chain is shown.</p>
+                <button id="use-panel-button" type="button">Show relations in this panel</button>
+            </div>
+        </div>
     </div>
 </body>
 

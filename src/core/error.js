@@ -2,9 +2,19 @@ const { print } = require('../frame/channel');
 const { showErrorMessage, showWarningMessage } = require('../frame/message');
 
 /**
+ * 错误详情，按需附带上下文，例如 { filePath }
+ * @typedef {Record<string, any>} ErrorDetails
+ */
+
+/**
  * 自定义错误类型
  */
 class CRelationError extends Error {
+    /**
+     * @param {string} message 错误消息
+     * @param {string} code 错误代码
+     * @param {ErrorDetails | null} details 详细信息
+     */
     constructor(message, code, details = null) {
         super(message);
         this.name = 'CRelationError';
@@ -62,21 +72,42 @@ const ErrorCodes = {
 };
 
 /**
+ * 错误处理选项
+ * @typedef {Object} ErrorHandlingOptions
+ * @property {Object} [context] 上下文信息
+ * @property {boolean} [showToUser] 是否向用户显示错误
+ * @property {any} [defaultValue] 出错时返回的默认值
+ * @property {number} [timeout] 超时毫秒数，0 表示不限时
+ * @property {boolean} [continueOnError] 批量执行时出错是否继续
+ */
+
+/**
+ * 批量执行结果
+ * @typedef {Object} BatchResult
+ * @property {Array<{ name: string, result: any }>} successful 成功的操作
+ * @property {Array<{ name: string, error: unknown }>} failed 失败的操作
+ * @property {number} total 操作总数
+ */
+
+/**
  * 错误处理器
  */
 class ErrorHandler {
     /**
      * 处理错误
-     * @param {Error} error 错误对象
+     * @param {unknown} error 错误对象，catch 捕获到的值类型未知
      * @param {Object} context 上下文信息
      * @param {boolean} showToUser 是否向用户显示错误
      */
     static handle(error, context = {}, showToUser = true) {
+        // 统一成 Error，避免下游到处做类型判断
+        const err = error instanceof Error ? error : new Error(String(error));
+
         // 记录错误
         const errorInfo = {
-            message: error.message,
-            code: error.code || ErrorCodes.UNKNOWN_ERROR,
-            stack: error.stack,
+            message: err.message,
+            code: err instanceof CRelationError ? err.code : ErrorCodes.UNKNOWN_ERROR,
+            stack: err.stack,
             context: context,
             timestamp: new Date().toISOString()
         };
@@ -85,7 +116,7 @@ class ErrorHandler {
 
         // 根据错误类型决定是否向用户显示
         if (showToUser) {
-            this.showUserMessage(error, context);
+            this.showUserMessage(err);
         }
 
         // 返回格式化的错误信息
@@ -95,10 +126,9 @@ class ErrorHandler {
     /**
      * 向用户显示错误消息
      * @param {Error} error 错误对象
-     * @param {Object} context 上下文信息
      */
-    static showUserMessage(error, context = {}) {
-        let userMessage = this.getUserFriendlyMessage(error, context);
+    static showUserMessage(error) {
+        let userMessage = this.getUserFriendlyMessage(error);
         
         if (error instanceof CRelationError) {
             // 根据错误代码决定严重程度
@@ -115,10 +145,9 @@ class ErrorHandler {
     /**
      * 获取用户友好的错误消息
      * @param {Error} error 错误对象
-     * @param {Object} context 上下文信息
      * @returns {string}
      */
-    static getUserFriendlyMessage(error, context = {}) {
+    static getUserFriendlyMessage(error) {
         if (error instanceof CRelationError) {
             switch (error.code) {
                 case ErrorCodes.NO_PROJECT_OPEN:
@@ -144,14 +173,14 @@ class ErrorHandler {
 
     /**
      * 包装异步函数，自动处理错误
-     * @param {Function} fn 要包装的函数
-     * @param {Object} options 选项
-     * @returns {Function}
+     * @param {(...args: any[]) => any} fn 要包装的函数
+     * @param {ErrorHandlingOptions} [options] 选项
+     * @returns {(this: any, ...args: any[]) => Promise<any>}
      */
     static wrapAsync(fn, options = {}) {
         const { context = {}, showToUser = true, defaultValue = null } = options;
 
-        return async function(...args) {
+        return async function (...args) {
             try {
                 return await fn.apply(this, args);
             } catch (error) {
@@ -165,7 +194,7 @@ class ErrorHandler {
      * 创建特定类型的错误
      * @param {string} code 错误代码
      * @param {string} message 错误消息
-     * @param {Object} details 详细信息
+     * @param {ErrorDetails | null} [details] 详细信息
      * @returns {CRelationError}
      */
     static create(code, message, details = null) {
@@ -174,9 +203,9 @@ class ErrorHandler {
 
     /**
      * 验证并处理操作结果
-     * @param {Function} operation 要执行的操作
+     * @param {() => Promise<any>} operation 要执行的操作
      * @param {string} operationName 操作名称
-     * @param {Object} options 选项
+     * @param {ErrorHandlingOptions} [options] 选项
      * @returns {Promise<any>}
      */
     static async executeWithErrorHandling(operation, operationName, options = {}) {
@@ -211,12 +240,13 @@ class ErrorHandler {
 
     /**
      * 批量执行操作，收集错误
-     * @param {Array} operations 操作数组 [{fn, name}]
-     * @param {Object} options 选项
-     * @returns {Promise<Object>}
+     * @param {Array<{ fn: () => Promise<any>, name: string }>} operations 操作数组 [{fn, name}]
+     * @param {ErrorHandlingOptions} [options] 选项
+     * @returns {Promise<BatchResult>}
      */
     static async executeBatch(operations, options = {}) {
         const { continueOnError = true, showToUser = false } = options;
+        /** @type {BatchResult} */
         const results = {
             successful: [],
             failed: [],

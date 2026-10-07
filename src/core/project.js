@@ -48,7 +48,9 @@ async function getProjects() {
         const data = await fs.readFile(projectDataFile, 'utf8');
         return JSON.parse(data);
     } catch (err) {
-        if (err.code !== 'ENOENT') {
+        // catch 到的值类型未知；ENOENT 表示文件还不存在，属于首次运行的正常情况
+        const code = /** @type {NodeJS.ErrnoException} */ (err).code;
+        if (code !== 'ENOENT') {
             print('error', 'Failed to read project.json.', err);
         }
         return [];

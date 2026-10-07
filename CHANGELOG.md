@@ -1,5 +1,14 @@
 # Change Log
 
+## 1.0.14
+- feat: add `bottom` to `crelation.relationsPosition`, showing the call chain in the bottom panel (next to Terminal / Problems / Output)
+- feat: show a hint and a switch button in the empty relations view
+- refactor: rename `crelation.relationsPanelMode` to `crelation.relationsTabMode` and drop its `panel` value. **The old setting name is no longer read**, so re-set the value if you had changed it
+- fix: keep the tree vertically centered when the panel is resized, without losing the current zoom and pan
+- fix: `validateSyntax` called `hasError()` / `isMissing()`, which are properties rather than methods in tree-sitter 0.22
+- note: the `C Relation` tab is always present in the panel — VS Code does not allow contributing a panel container dynamically
+- chore: remove unused code, exclude the bundled `d3.min.js` from linting, and add JSDoc so the project passes `checkJs` with `strict`
+
 ## 1.0.13
 - fix: extreme slow parsing of files with large static data tables (e.g. CMSIS DSP library tables with thousands of elements) by traversing the AST with a single TreeCursor instead of per-node JS object marshalling
 

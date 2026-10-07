@@ -3,20 +3,20 @@ const project = require('./project');
 const parse = require('./parse');
 const statusbar = require('../frame/statusbar');
 const { print, createTimer } = require('../frame/channel');
-const { createWebview } = require('../frame/webview');
-const { showInfoMessage, showErrorMessage } = require('../frame/message');
-const { getAutoInitDatabase, getAutoUpdateInterval } = require('../frame/setting');
+const { createWebviewPanel, showInRelationsView } = require('../frame/webview');
+const { showInfoMessage } = require('../frame/message');
+const { getAutoInitDatabase, getAutoUpdateInterval, getRelationPosition } = require('../frame/setting');
 const { ErrorHandler, ErrorCodes } = require('./error');
 const { getDatabaseManager } = require('./database');
 const { setProgress } = statusbar;
 
-let autoUpdateTimer = null;
+/** @type {NodeJS.Timeout | undefined} */
+let autoUpdateTimer;
 
 /**
  * 初始化项目数据库
- * @param {vscode.ExtensionContext} context
  */
-async function initDatabase(context) {
+async function initDatabase() {
     return await ErrorHandler.executeWithErrorHandling(async () => {
         const projectPath = project.getProjectPath();
         if (!projectPath) {
@@ -37,7 +37,7 @@ async function initDatabase(context) {
             print('debug', `Processing ${current}/${total}: ${filename}`);
         });
         
-        const duration = timer.stop();
+        timer.stop();
 
         showInfoMessage(`Init database complete`);
         statusbar.hideStatusbarItem();
@@ -49,9 +49,8 @@ async function initDatabase(context) {
 
 /**
  * 更新项目数据库
- * @param {vscode.ExtensionContext} context
  */
-async function updateDatabase(context) {
+async function updateDatabase() {
     return await ErrorHandler.executeWithErrorHandling(async () => {
         const projectPath = project.getProjectPath();
         if (!projectPath) {
@@ -70,7 +69,7 @@ async function updateDatabase(context) {
             print('debug', `Processing ${current}/${total}: ${filename}`);
         });
         
-        const duration = timer.stop();
+        timer.stop();
 
         showInfoMessage(`Update database complete`);
         statusbar.hideStatusbarItem();
@@ -81,9 +80,8 @@ async function updateDatabase(context) {
 
 /**
  * 强制更新项目数据库
- * @param {vscode.ExtensionContext} context
  */
-async function forceUpdateDatabase(context) {
+async function forceUpdateDatabase() {
     return await ErrorHandler.executeWithErrorHandling(async () => {
         const projectPath = project.getProjectPath();
         if (!projectPath) {
@@ -102,7 +100,7 @@ async function forceUpdateDatabase(context) {
             print('debug', `Processing ${current}/${total}: ${filename}`);
         });
         
-        const duration = timer.stop();
+        timer.stop();
 
         showInfoMessage(`Force update database complete`);
         statusbar.hideStatusbarItem();
@@ -113,12 +111,11 @@ async function forceUpdateDatabase(context) {
 
 /**
  * 自动初始化项目数据库
- * @param {vscode.ExtensionContext} context
  */
-async function autoInitDatabase(context) {
+async function autoInitDatabase() {
     if (getAutoInitDatabase()) {
         print('info', 'Auto init database enabled.');
-        await initDatabase(context);
+        await initDatabase();
     }
 }
 
@@ -193,7 +190,12 @@ async function showRelations(context) {
             return;
         }
         
-        createWebview(context, text, result);
+        // 根据配置决定在底部面板还是编辑器标签页中显示
+        if (getRelationPosition() === 'bottom') {
+            await showInRelationsView(text, result);
+        } else {
+            createWebviewPanel(context, text, result);
+        }
         print('info', `Showing relations for function: ${text}`);
     }, 'showRelations', { showToUser: true });
 }

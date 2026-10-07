@@ -1,6 +1,9 @@
 const vscode = require('vscode');
 
+/** @type {vscode.LogOutputChannel} */
 let outputChannel;
+
+/** @type {Record<string, { level: number, log: ((message: string) => void) | null }>} */
 let logLevels;
 
 /**
@@ -87,13 +90,6 @@ function printStructured(type, message, metadata = {}) {
     }
 
     const timestamp = new Date().toISOString();
-    const structured = {
-        timestamp,
-        level: type.toUpperCase(),
-        message,
-        ...metadata
-    };
-
     const formattedMessage = `[${timestamp}] ${message} ${JSON.stringify(metadata)}`;
 
     if (logLevel?.log) {
@@ -126,7 +122,7 @@ function printPerformance(operation, duration, metadata = {}) {
 /**
  * 创建性能计时器
  * @param {string} operation 操作名称
- * @returns {Object} 计时器对象
+ * @returns {{ stop: (metadata?: object) => number, getDuration: () => number }} 计时器对象
  */
 function createTimer(operation) {
     const startTime = Date.now();
